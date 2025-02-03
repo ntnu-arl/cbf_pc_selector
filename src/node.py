@@ -1,4 +1,4 @@
-#! /bin/python3
+#! /usr/bin/python3
 import numpy as np
 import rospy
 from std_msgs.msg import Header
