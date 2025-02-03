@@ -1,7 +1,8 @@
+#! /bin/python3
 import numpy as np
 import rospy
 from std_msgs.msg import Header
-from mavros_msgs import WaypointList, Waypoint
+# from mavros_msgs import WaypointList, Waypoint
 from sensor_msgs.msg import Image, PointCloud2, PointField
 from sensor_msgs import point_cloud2
 import time
@@ -62,8 +63,8 @@ class CallbackManager:
         self.pub_ds_pc.publish(self.pc_to_msg(msg.header.stamp, points[mask], 0, norm[mask]))
         self.pub_selected.publish(self.pc_to_msg(msg.header.stamp, points[idx], norm[idx]))
 
-        mavros_pc_list = WaypointList([Waypoint(points[i]) for i in idx])
-        print(mavros_pc_list)
+        # mavros_pc_list = WaypointList([Waypoint(points[i]) for i in idx])
+        # print(mavros_pc_list)
 
         toc = time.time()
         print(toc-tic)
@@ -91,7 +92,7 @@ if __name__ == '__main__':
     cb_main = CallbackManager()
     cb_main.pub_ds_pc = rospy.Publisher('/cbf_select/downsamped_pc', PointCloud2, queue_size=1)
     cb_main.pub_selected = rospy.Publisher('/cbf_select/selected_pc', PointCloud2, queue_size=1)
-    cb_main.pub_mavros = rospy.Publisher('/cbf_select/selected_pc_mavros', WaypointList, queue_size=1)
+    # cb_main.pub_mavros = rospy.Publisher('/cbf_select/selected_pc_mavros', WaypointList, queue_size=1)
 
     pc_sub = rospy.Subscriber('/cbf_select/img_input', Image, cb_main.cb, queue_size=1)
 
