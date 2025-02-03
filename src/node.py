@@ -2,7 +2,7 @@
 import numpy as np
 import rospy
 from std_msgs.msg import Header
-from mavros_msgs import WaypointList, Waypoint
+from mavros_msgs.msg import WaypointList, Waypoint
 from sensor_msgs.msg import Image, PointCloud2, PointField
 from sensor_msgs import point_cloud2
 import time
