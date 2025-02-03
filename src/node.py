@@ -42,7 +42,7 @@ class CallbackManager:
         self.p = self.p / np.linalg.norm(self.p, axis=0)
 
     def cb(self, msg):
-        tic = time.time()
+        # tic = time.time()
         ## read img
         depth_img = np.ndarray((msg.height, msg.width), np.uint8, msg.data, 0).astype(np.float32) / 255 * 5
         range_img = depth_img * self.yz_sqrt
@@ -63,14 +63,14 @@ class CallbackManager:
         self.pub_ds_pc.publish(self.pc_to_msg(msg.header.stamp, points[mask], 0, norm[mask]))
         self.pub_selected.publish(self.pc_to_msg(msg.header.stamp, points[idx], norm[idx]))
 
-        mavros_pc_list = WaypointList(len(idx))
-        # for i in idx:
-        #     pass
-            # mavros_pc_list.waypoints(p)
-        print(len(mavros_pc_list))
+        mavros_pc_list = WaypointList(0, [Waypoint() for _ in points[idx]])
+        for i in len(idx):
+            mavros_pc_list.waypoints[i].x_lat = points[idx[i]].x
+            mavros_pc_list.waypoints[i].y_long = - points[idx[i]].y  # flip to NED
+            mavros_pc_list.waypoints[i].z_alt = - points[idx[i]].z  # flip to NED
 
-        toc = time.time()
-        print(toc-tic)
+        # toc = time.time()
+        # print(toc-tic)
 
     def pc_to_msg(self, ts, pc, norm=0.0, val=0.0):
         data = np.zeros([pc.shape[0], 5], dtype=np.float32)
