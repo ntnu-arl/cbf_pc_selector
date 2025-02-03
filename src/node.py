@@ -5,7 +5,7 @@ from std_msgs.msg import Header
 from mavros_msgs.msg import WaypointList, Waypoint
 from sensor_msgs.msg import Image, PointCloud2, PointField
 from sensor_msgs import point_cloud2
-# import ros_numpy
+import ros_numpy
 import time
 
 
@@ -40,12 +40,15 @@ class CallbackManager:
     def cb(self, msg):
         # tic = time.time()
 
-        # ## read msg (fast but depend on ros_numpy
-        # pc = ros_numpy.point_cloud2.pointcloud2_to_xyz_array(msg, remove_nans=True)
-        # pc = pc[:, [2,1,0]] ; pc[:,2] = - pc[:,2] # rotate to correct frame
+        ## read msg (fast but depend on ros_numpy
+        pc = ros_numpy.point_cloud2.pointcloud2_to_xyz_array(msg, remove_nans=True)
+        pc = pc[:, [2,1,0]] ; pc[:,2] = - pc[:,2] # rotate to correct frame
 
         ## read msg (slow)
-        pc = np.array([[z, y, -x] for x, y, z in point_cloud2.read_points(msg, field_names=('x', 'y', 'z'), skip_nans=True)])
+        # pc = np.array([
+        #     [z, y, -x]  # with rotation to correct frame
+        #     for x, y, z in point_cloud2.read_points(msg, field_names=('x', 'y', 'z'), skip_nans=True)
+        # ])
 
         ## compute range image
         range = np.linalg.norm(pc, axis=1)

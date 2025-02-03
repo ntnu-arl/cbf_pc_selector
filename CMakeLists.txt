@@ -9,6 +9,7 @@ project(cbf_pc_selector)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   rospy
+  ros_numpy
   std_msgs
   sensor_msgs
   mavros_msgs
@@ -106,7 +107,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES pc_to_range
-  CATKIN_DEPENDS rospy std_msgs sensor_msgs mavros_msgs
+  CATKIN_DEPENDS rospy ros_numpy std_msgs sensor_msgs mavros_msgs
 #  DEPENDS system_lib
 )
 
