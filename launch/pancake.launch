@@ -15,7 +15,7 @@
     <param name="vfov" value="$(arg vfov)"/> -->
 
     <node pkg="cbf_pc_selector" type="node.py" name="cbf_pc_selector">
-        <remap from="/cbf_select/img_input" to="/tof_depth"/>
+        <remap from="/cbf_select/input" to="/tof"/>
         <remap from="/cbf_pc_selector/selected_pc_mavros" to="/mavros/tof_obstacles"/>
     </node>
 </launch>
