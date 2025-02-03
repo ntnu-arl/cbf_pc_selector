@@ -65,9 +65,9 @@ class CallbackManager:
 
         mavros_pc_list = WaypointList(0, [Waypoint() for _ in points[idx]])
         for i, id in enumerate(idx):
-            mavros_pc_list.waypoints[i].x_lat = points[id].x
-            mavros_pc_list.waypoints[i].y_long = - points[id].y  # flip to NED
-            mavros_pc_list.waypoints[i].z_alt = - points[id].z  # flip to NED
+            mavros_pc_list.waypoints[i].x_lat = points[id,0]
+            mavros_pc_list.waypoints[i].y_long = - points[id,1]  # flip to NED
+            mavros_pc_list.waypoints[i].z_alt = - points[id,2]  # flip to NED
 
         # toc = time.time()
         # print(toc-tic)
