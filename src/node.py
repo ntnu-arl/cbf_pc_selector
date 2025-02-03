@@ -1,7 +1,8 @@
+#! /usr/bin/python3
 import numpy as np
 import rospy
 from std_msgs.msg import Header
-from mavros_msgs import WaypointList, Waypoint
+from mavros_msgs.msg import WaypointList, Waypoint
 from sensor_msgs.msg import Image, PointCloud2, PointField
 from sensor_msgs import point_cloud2
 import time
@@ -62,11 +63,14 @@ class CallbackManager:
         self.pub_ds_pc.publish(self.pc_to_msg(msg.header.stamp, points[mask], 0, norm[mask]))
         self.pub_selected.publish(self.pc_to_msg(msg.header.stamp, points[idx], norm[idx]))
 
-        mavros_pc_list = WaypointList([Waypoint(points[i]) for i in idx])
-        print(mavros_pc_list)
+        mavros_pc_list = WaypointList(0, [Waypoint() for _ in points[idx]])
+        for i, id in enumerate(idx):
+            mavros_pc_list.waypoints[i].x_lat = points[id,0]
+            mavros_pc_list.waypoints[i].y_long = - points[id,1]  # flip to NED
+            mavros_pc_list.waypoints[i].z_alt = - points[id,2]  # flip to NED
 
-        toc = time.time()
-        print(toc-tic)
+        # toc = time.time()
+        # print(toc-tic)
 
     def pc_to_msg(self, ts, pc, norm=0.0, val=0.0):
         data = np.zeros([pc.shape[0], 5], dtype=np.float32)
