@@ -63,8 +63,11 @@ class CallbackManager:
         self.pub_ds_pc.publish(self.pc_to_msg(msg.header.stamp, points[mask], 0, norm[mask]))
         self.pub_selected.publish(self.pc_to_msg(msg.header.stamp, points[idx], norm[idx]))
 
-        mavros_pc_list = WaypointList([Waypoint(points[i]) for i in idx])
-        print(mavros_pc_list)
+        mavros_pc_list = WaypointList(len(idx))
+        # for i in idx:
+        #     pass
+            # mavros_pc_list.waypoints(p)
+        print(len(mavros_pc_list))
 
         toc = time.time()
         print(toc-tic)
