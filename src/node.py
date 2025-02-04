@@ -15,15 +15,14 @@ class CallbackManager:
         self.pub_selected = None
         self.pub_mavros = None
 
-        ## hardcoded stuff yoohoooo
-        self.frame_name = 'imu'
-        self.max_obs = 200
-        self.hfov = np.deg2rad(90 // 2)
-        self.vfov = np.deg2rad(106 // 2)
-
-        self.dmin = 0.1
-        self.dmax = 5
-        self.shape_img = 20, 30
+        ## hardcoded stuff yoohoooo\
+        self.frame_name = rospy.get_param('/cbf_pc_selector/body_frame')
+        self.max_obs = rospy.get_param('/cbf_pc_selector/nb_obstacles')
+        self.hfov = np.deg2rad(rospy.get_param('/cbf_pc_selector/hfov') // 2)
+        self.vfov = np.deg2rad(rospy.get_param('/cbf_pc_selector/vfov') // 2)
+        self.dmin = rospy.get_param('/cbf_pc_selector/min_range')
+        self.dmax = rospy.get_param('/cbf_pc_selector/max_range')
+        self.shape_img = rospy.get_param('/cbf_pc_selector/bins_v'), rospy.get_param('/cbf_pc_selector/bins_h')
 
         ## range to pc conversion stuff
         tan_hfov = np.tan(self.hfov)
@@ -42,7 +41,7 @@ class CallbackManager:
 
         ## read msg (fast but depend on ros_numpy
         pc = ros_numpy.point_cloud2.pointcloud2_to_xyz_array(msg, remove_nans=True)
-        pc = pc[:, [2,1,0]] ; pc[:,2] = - pc[:,2] # rotate to correct frame
+        pc = pc[:, [2,1,0]] ; pc[:,2] = - pc[:,2] # rotate to correct frame (TODO not hardcode this)
 
         ## read msg (slow)
         # pc = np.array([
@@ -80,6 +79,8 @@ class CallbackManager:
             mavros_pc_list.waypoints[i].x_lat = points[id,0]
             mavros_pc_list.waypoints[i].y_long = - points[id,1]  # flip to NED
             mavros_pc_list.waypoints[i].z_alt = - points[id,2]  # flip to NED
+
+        self.pub_mavros.publish(mavros_pc_list)
 
         # toc = time.time()
         # rospy.logwarn(f'{toc-tic}')

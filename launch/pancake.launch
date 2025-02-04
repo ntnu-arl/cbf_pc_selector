@@ -1,21 +1,8 @@
 <?xml version="1.0"?>
 <launch>
-    <!-- <arg name="img_width" default="512"/>
-    <arg name="img_height" default="128"/>
-    <arg name="min_range" default="0.3"/>
-    <arg name="max_range" default="5"/>
-    <arg name="hfov" default="3.1415"/>
-    <arg name="vfov" default="0.7854"/>
-
-    <param name="img_width" value="$(arg img_width)"/>
-    <param name="img_height" value="$(arg img_height)"/>
-    <param name="min_range" value="$(arg min_range)"/>
-    <param name="max_range" value="$(arg max_range)"/>
-    <param name="hfov" value="$(arg hfov)"/>
-    <param name="vfov" value="$(arg vfov)"/> -->
-
     <node pkg="cbf_pc_selector" type="node.py" name="cbf_pc_selector">
+        <rosparam file="$(find cbf_pc_selector)/config/pancake.yaml)" command="load"/>
         <remap from="/cbf_select/input" to="/tof"/>
-        <remap from="/cbf_pc_selector/selected_pc_mavros" to="/mavros/tof_obstacles"/>
+        <remap from="/cbf_select/selected_pc_mavros" to="/mavros/tof_obstacles"/>
     </node>
 </launch>
