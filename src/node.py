@@ -41,7 +41,7 @@ class CallbackManager:
 
         ## read msg (fast but depend on ros_numpy
         pc = ros_numpy.point_cloud2.pointcloud2_to_xyz_array(msg, remove_nans=True)
-        pc = pc[:, [2,1,0]] ; pc[:,2] = - pc[:,2] # rotate to correct frame (TODO not hardcode this)
+        pc = pc[:, [2,0,1]]; pc[:,1] = -pc[:,1]; pc[:,2] = -pc[:,2] # rotate to correct frame (TODO not hardcode this)
 
         ## read msg (slow)
         # pc = np.array([
