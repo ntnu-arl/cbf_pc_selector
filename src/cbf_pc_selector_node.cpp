@@ -178,8 +178,14 @@ private:
 
         // auto end = std::chrono::system_clock::now();
         // std::chrono::duration<double> elapsed_seconds = end-start;
-        // std::cout << "elapsed time: " << elapsed_seconds.count() << "s" << std::endl;
+        // static double elapsed_time_sum = 0;
+        // static size_t count = 0;
+        // elapsed_time_sum += elapsed_seconds.count();
+        // count++;
 
+        // if (count % 90 == 0){
+        // std::cout << "average elapsed time: " << elapsed_time_sum / (double)count * 1e3 << " ms\n";
+        }
     }
 
     ros::NodeHandle _nh;
