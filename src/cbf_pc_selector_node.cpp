@@ -30,6 +30,7 @@ public:
     {
         // get params
         _nh.getParam("/cbf_pc_selector/nb_obstacles", _nb_pts_max);
+        _nh.getParam("/cbf_pc_selector/min_ratio_per_bin", _min_ratio_bin);
         _nh.getParam("/cbf_pc_selector/percentile", _percentile);
         _percentile = _percentile / 100;
         _nh.getParam("/cbf_pc_selector/min_range", _min_range);
@@ -60,6 +61,7 @@ private:
     {
         float scale_x = (float)_image_width / msg->width;
         float scale_y = (float)_image_height / msg->height;
+        _min_per_bin = _min_ratio_bin / (scale_x * scale_y);
         _fx = msg->K[0] * scale_x;
         _fy = msg->K[4] * scale_y;
         _cx = msg->K[2] * scale_x;
@@ -74,7 +76,7 @@ private:
             return;
         }
 
-        auto start = std::chrono::system_clock::now();
+        // auto start = std::chrono::system_clock::now();
 
         // loop over all pixels
         size_t width = msg->width;
@@ -111,7 +113,7 @@ private:
         {
             for (size_t v = 0; v < _image_width; v++)
             {
-                if (_bins[u][v].size() > 100)
+                if (_bins[u][v].size() > _min_per_bin)
                 {
                     // parial sort
                     size_t idx = static_cast<size_t>(_bins[u][v].size() * _percentile);
@@ -174,9 +176,9 @@ private:
         pc_msg.header.stamp = msg->header.stamp;
         _pc_pub.publish(pc_msg);
 
-        auto end = std::chrono::system_clock::now();
-        std::chrono::duration<double> elapsed_seconds = end-start;
-        std::cout << "elapsed time: " << elapsed_seconds.count() << "s" << std::endl;
+        // auto end = std::chrono::system_clock::now();
+        // std::chrono::duration<double> elapsed_seconds = end-start;
+        // std::cout << "elapsed time: " << elapsed_seconds.count() << "s" << std::endl;
 
     }
 
@@ -189,10 +191,10 @@ private:
     std::vector<std::vector<std::vector<float>>> _bins;
     std::vector<PixelPoint> _points;
 
-    int _image_height, _image_width, _nb_pts_max;
+    int _image_height, _image_width, _nb_pts_max, _min_per_bin;
     float _fx = 0.f, _fy, _cx, _cy;
     float _min_range, _max_range;
-    float _percentile;
+    float _percentile, _min_ratio_bin;
 };
 
 

@@ -1,10 +1,8 @@
 bins_h: 20
 bins_v: 10
 nb_obstacles: 100
-percentile: 20
-min_range: 0.1 # [m]
-max_range: 5 # [m]\
+percentile: 20  # [%]
+min_ratio_per_bin: 0.1  # minimum occupancy ratio for bins to be considered
+min_range: 0.1  # [m]
+max_range: 5  # [m]
 body_frame: d455_depth_optical_frame
-input_type: pc  # 'image' of 'pc'
-pc_is_flu: False  # if input_type is pc, is it FLU or optical frame
-publish_mavros: True  # publish pointcloud to mavros plugin
