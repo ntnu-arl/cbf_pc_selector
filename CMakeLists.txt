@@ -7,16 +7,16 @@ add_compile_options(-std=c++17)
 find_package(catkin REQUIRED COMPONENTS
     roscpp
     sensor_msgs
+    mavros_msgs
 )
 
 catkin_package(
     LIBRARIES cbf_pc_selector
-    CATKIN_DEPENDS roscpp sensor_msgs
+    CATKIN_DEPENDS roscpp sensor_msgs mavros_msgs
 )
 
 include_directories(
     ${catkin_INCLUDE_DIRS}
-    ${OpenCV_INCLUDE_DIRS}
 )
 
 add_executable(cbf_pc_selector_node src/cbf_pc_selector_node.cpp)

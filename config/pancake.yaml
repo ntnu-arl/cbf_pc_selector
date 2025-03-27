@@ -7,3 +7,4 @@ max_range: 5  # [m]
 hfov: 90  # [deg]
 vfov: 106  # [deg]
 body_frame: imu
+publish_to_mavros: True

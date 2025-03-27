@@ -3,6 +3,8 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/point_cloud2_iterator.h>
+#include <mavros_msgs/Waypoint.h>
+#include <mavros_msgs/WaypointList.h>
 
 #include <cmath>
 #include <vector>
@@ -31,6 +33,7 @@ public:
         // get params
         _nh.getParam("/cbf_pc_selector/nb_obstacles", _nb_pts_max);
         _nh.getParam("/cbf_pc_selector/min_ratio_per_bin", _min_ratio_bin);
+        _nh.getParam("/cbf_pc_selector/publish_to_mavros", _publish_mavros);
         _nh.getParam("/cbf_pc_selector/percentile", _percentile);
         _percentile = _percentile / 100;
         _nh.getParam("/cbf_pc_selector/min_range", _min_range);
@@ -53,6 +56,7 @@ public:
         _camera_info_sub = _nh.subscribe("/cbf_pc_selector/camera_info", 1, &CbfPcSelector::cameraInfoCb, this);
         _image_sub = _nh.subscribe("/cbf_pc_selector/input_image", 1, &CbfPcSelector::imageCb, this);
         _pc_pub = _nh.advertise<sensor_msgs::PointCloud2>("/cbf_pc_selector/output_pc", 1);
+        _mavros_pub = _nh.advertise<mavros_msgs::WaypointList>("/cbf_pc_selector/output_mavros", 1);
     }
 
 private:
@@ -119,10 +123,11 @@ private:
                     size_t idx = static_cast<size_t>(_bins[u][v].size() * _percentile);
                     std::nth_element(_bins[u][v].begin(), _bins[u][v].begin() + idx, _bins[u][v].end());
 
+                    // point coordinates in FLU
                     PixelPoint pp;
-                    pp.z = _bins[u][v][idx];
-                    pp.x = (v + 0.5 - _cx) / _fx * pp.z;
-                    pp.y = (u + 0.5 - _cy) / _fy * pp.z;
+                    pp.x = _bins[u][v][idx];
+                    pp.y = - (v + 0.5 - _cx) / _fx * pp.x;
+                    pp.z = - (u + 0.5 - _cy) / _fy * pp.x;
                     _points.push_back(pp);
                 }
                 _bins[u][v].clear();
@@ -142,7 +147,10 @@ private:
         }
 
         // fill PointCloud2
+        mavros_msgs::WaypointList mavros_pc_msg;
+
         sensor_msgs::PointCloud2 pc_msg;
+        pc_msg.header.stamp = msg->header.stamp;
         _nh.getParam("/cbf_pc_selector/body_frame", pc_msg.header.frame_id);
 
         sensor_msgs::PointCloud2Modifier pc_modifier(pc_msg);
@@ -170,11 +178,26 @@ private:
             ++iter_x;
             ++iter_y;
             ++iter_z;
+
+            // publish to mavros
+            if (_publish_mavros)
+            {
+                mavros_msgs::Waypoint wp;
+                wp.x_lat = pp.x;
+                wp.y_long = - pp.y;  // flip to NED
+                wp.z_alt = - pp.z;  // flip to NED
+
+                mavros_pc_msg.waypoints.push_back(wp);
+            }
         }
 
         // publish
-        pc_msg.header.stamp = msg->header.stamp;
         _pc_pub.publish(pc_msg);
+
+        if (_publish_mavros)
+        {
+            _mavros_pub.publish(mavros_pc_msg);
+        }
 
         // auto end = std::chrono::system_clock::now();
         // std::chrono::duration<double> elapsed_seconds = end-start;
@@ -193,6 +216,7 @@ private:
     ros::Subscriber _camera_info_sub;
     ros::Subscriber _image_sub;
     ros::Publisher _pc_pub;
+    ros::Publisher _mavros_pub;
 
     std::vector<std::vector<std::vector<float>>> _bins;
     std::vector<PixelPoint> _points;
@@ -201,6 +225,7 @@ private:
     float _fx = 0.f, _fy, _cx, _cy;
     float _min_range, _max_range;
     float _percentile, _min_ratio_bin;
+    bool _publish_mavros;
 };
 
 
