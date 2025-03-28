@@ -1,6 +1,6 @@
-bins_h: 20
-bins_v: 10
-nb_obstacles: 100
+bins_h: 30
+bins_v: 20
+nb_obstacles: 150
 percentile: 20  # [%]
 min_ratio_per_bin: 0.1  # minimum occupancy ratio for bins to be considered
 min_range: 0.1  # [m]

@@ -21,7 +21,7 @@ struct PixelPoint
 
 bool ppSorter(PixelPoint& p1, PixelPoint& p2)
 {
-    return p1.z < p2.z;
+    return p1.x < p2.x;
 }
 
 
@@ -205,10 +205,9 @@ private:
         // static size_t count = 0;
         // elapsed_time_sum += elapsed_seconds.count();
         // count++;
-
-        // if (count % 90 == 0){
-        // std::cout << "average elapsed time: " << elapsed_time_sum / (double)count * 1e3 << " ms\n";
-        }
+        //
+        // if (count % 90 == 0)
+        //     std::cout << "average elapsed time: " << elapsed_time_sum / (double)count * 1e3 << " ms\n";
     }
 
     ros::NodeHandle _nh;
