@@ -195,7 +195,7 @@ private:
         sensor_msgs::PointCloud2Iterator<float> iter_y(pc_msg, "y");
         sensor_msgs::PointCloud2Iterator<float> iter_z(pc_msg, "z");
 
-        for (size_t i = 0; i < nb_points; i++, ++iter_x, ++iter_y, ++iter_z) {
+        for (size_t i = 0; i < nb_points; i++, ++iter_x, ++iter_y, ++iter_z)
         {
             PixelPoint& pp = _points[i];
             *iter_x = pp.x;
