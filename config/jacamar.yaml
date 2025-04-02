@@ -5,5 +5,7 @@ percentile: 20  # [%]
 min_ratio_per_bin: 0.1  # minimum occupancy ratio for bins to be considered
 min_range: 0.1  # [m]
 max_range: 5  # [m]
-body_frame: imu
+frame_cam: d455_depth_optical_frame
+frame_body: base_link
+frame_mavros: base_link_frd
 publish_to_mavros: True

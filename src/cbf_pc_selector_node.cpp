@@ -3,15 +3,16 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/point_cloud2_iterator.h>
-#include <mavros_msgs/Waypoint.h>
-#include <mavros_msgs/WaypointList.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_sensor_msgs/tf2_sensor_msgs.h>
 
 #include <cmath>
 #include <vector>
 #include <algorithm>
 
-#include <iostream>
-#include <chrono>
+// #include <iostream>
+// #include <chrono>
 
 
 struct PixelPoint
@@ -21,7 +22,7 @@ struct PixelPoint
 
 bool ppSorter(PixelPoint& p1, PixelPoint& p2)
 {
-    return p1.x < p2.x;
+    return p1.z < p2.z;
 }
 
 
@@ -49,18 +50,52 @@ public:
         _bins = std::vector<std::vector<std::vector<float>>>(_image_height, std::vector<std::vector<float>>(_image_width));
         for (size_t u = 0; u < _image_height; u++)
             for (size_t v = 0; v < _image_width; v++)
-                _bins[u][v].reserve(10000);
+                _bins[u][v].reserve(5000);
 
+        // lookup transforms
+        std::string frame_cam, frame_body, frame_mavros;
+        _nh.getParam("/cbf_pc_selector/frame_cam", frame_cam);
+        _nh.getParam("/cbf_pc_selector/frame_body", frame_body);
+        _nh.getParam("/cbf_pc_selector/frame_mavros", frame_mavros);
+
+        bool transform_body = false;
+        while (!transform_body)
+        {
+            try
+            {
+                _T_cam_body = _tf_buffer.lookupTransform(frame_cam, frame_body, ros::Time(0));
+                transform_body = true;
+            }
+            catch (tf2::TransformException &ex)
+            {
+                ROS_WARN_STREAM("Could not get transform: " << ex.what());
+                ros::Duration(0.01).sleep();
+            }
+        }
+
+        bool transform_mavros = _publish_mavros;
+        while (!transform_mavros)
+        {
+            try
+            {
+                _T_cam_mavros = _tf_buffer.lookupTransform(frame_cam, frame_mavros, ros::Time(0));
+                transform_mavros = true;
+            }
+            catch (tf2::TransformException &ex)
+            {
+                ROS_WARN_STREAM("Could not get transform: " << ex.what());
+                ros::Duration(0.01).sleep();
+            }
+        }
 
         // subscribers
         _camera_info_sub = _nh.subscribe("/cbf_pc_selector/camera_info", 1, &CbfPcSelector::cameraInfoCb, this);
         _image_sub = _nh.subscribe("/cbf_pc_selector/input_image", 1, &CbfPcSelector::imageCb, this);
         _pc_pub = _nh.advertise<sensor_msgs::PointCloud2>("/cbf_pc_selector/output_pc", 1);
-        _mavros_pub = _nh.advertise<mavros_msgs::WaypointList>("/cbf_pc_selector/output_mavros", 1);
+        _mavros_pub = _nh.advertise<sensor_msgs::PointCloud2>("/cbf_pc_selector/output_mavros", 1);
     }
 
 private:
-
     void cameraInfoCb(const sensor_msgs::CameraInfoConstPtr& msg)
     {
         float scale_x = (float)_image_width / msg->width;
@@ -76,9 +111,7 @@ private:
     {
         // exit if intrinsics not received
         if (_fx == 0.f)
-        {
             return;
-        }
 
         // auto start = std::chrono::system_clock::now();
 
@@ -125,9 +158,9 @@ private:
 
                     // point coordinates in FLU
                     PixelPoint pp;
-                    pp.x = _bins[u][v][idx];
-                    pp.y = - (v + 0.5 - _cx) / _fx * pp.x;
-                    pp.z = - (u + 0.5 - _cy) / _fy * pp.x;
+                    pp.z = _bins[u][v][idx];
+                    pp.x = (v + 0.5 - _cx) / _fx * pp.z;
+                    pp.y = (u + 0.5 - _cy) / _fy * pp.z;
                     _points.push_back(pp);
                 }
                 _bins[u][v].clear();
@@ -147,11 +180,8 @@ private:
         }
 
         // fill PointCloud2
-        mavros_msgs::WaypointList mavros_pc_msg;
-
         sensor_msgs::PointCloud2 pc_msg;
         pc_msg.header.stamp = msg->header.stamp;
-        _nh.getParam("/cbf_pc_selector/body_frame", pc_msg.header.frame_id);
 
         sensor_msgs::PointCloud2Modifier pc_modifier(pc_msg);
         pc_modifier.setPointCloud2Fields(3,
@@ -165,38 +195,26 @@ private:
         sensor_msgs::PointCloud2Iterator<float> iter_y(pc_msg, "y");
         sensor_msgs::PointCloud2Iterator<float> iter_z(pc_msg, "z");
 
-        for (size_t i = 0; i < nb_points; i++)
+        for (size_t i = 0; i < nb_points; i++, ++iter_x, ++iter_y, ++iter_z) {
         {
             PixelPoint& pp = _points[i];
-
-            // insert in pc
             *iter_x = pp.x;
             *iter_y = pp.y;
             *iter_z = pp.z;
-
-            // increment iterators
-            ++iter_x;
-            ++iter_y;
-            ++iter_z;
-
-            // publish to mavros
-            if (_publish_mavros)
-            {
-                mavros_msgs::Waypoint wp;
-                wp.x_lat = pp.x;
-                wp.y_long = - pp.y;  // flip to NED
-                wp.z_alt = - pp.z;  // flip to NED
-
-                mavros_pc_msg.waypoints.push_back(wp);
-            }
         }
 
         // publish
-        _pc_pub.publish(pc_msg);
+        sensor_msgs::PointCloud2 pc_msg_body;
+        tf2::doTransform(pc_msg, pc_msg_body, _T_cam_body);
+        _nh.getParam("/cbf_pc_selector/frame_body", pc_msg_body.header.frame_id);
+        _pc_pub.publish(pc_msg_body);
 
         if (_publish_mavros)
         {
-            _mavros_pub.publish(mavros_pc_msg);
+            sensor_msgs::PointCloud2 pc_msg_mavros;
+            tf2::doTransform(pc_msg, pc_msg_mavros, _T_cam_mavros);
+            _nh.getParam("/cbf_pc_selector/frame_mavros", pc_msg_mavros.header.frame_id);
+            _mavros_pub.publish(pc_msg_mavros);
         }
 
         // auto end = std::chrono::system_clock::now();
@@ -211,6 +229,11 @@ private:
     }
 
     ros::NodeHandle _nh;
+    tf2_ros::Buffer _tf_buffer;
+    tf2_ros::TransformListener _tf_listener{_tf_buffer};
+
+    geometry_msgs::TransformStamped _T_cam_body;
+    geometry_msgs::TransformStamped _T_cam_mavros;
 
     ros::Subscriber _camera_info_sub;
     ros::Subscriber _image_sub;

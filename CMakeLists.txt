@@ -7,12 +7,13 @@ add_compile_options(-std=c++17)
 find_package(catkin REQUIRED COMPONENTS
     roscpp
     sensor_msgs
-    mavros_msgs
+    tf2_ros
+    tf2_sensor_msgs
 )
 
 catkin_package(
     LIBRARIES cbf_pc_selector
-    CATKIN_DEPENDS roscpp sensor_msgs mavros_msgs
+    CATKIN_DEPENDS roscpp sensor_msgs tf2_ros tf2_sensor_msgs
 )
 
 include_directories(
