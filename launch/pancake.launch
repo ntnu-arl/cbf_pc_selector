@@ -3,6 +3,6 @@
     <node pkg="cbf_pc_selector" type="node.py" name="cbf_pc_selector">
         <rosparam file="$(find cbf_pc_selector)/config/pancake.yaml" command="load"/>
         <remap from="/cbf_select/input" to="/tof"/>
-        <remap from="/cbf_select/selected_pc_mavros" to="/mavros/tof_obstacles"/>
+        <remap from="/cbf_select/selected_pc_mavros" to="/mavros/obstacles"/>
     </node>
 </launch>

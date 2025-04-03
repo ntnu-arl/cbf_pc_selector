@@ -4,6 +4,6 @@
         <rosparam file="$(find cbf_pc_selector)/config/jacamar.yaml" command="load"/>
         <remap from="/cbf_pc_selector/camera_info" to="/d455/depth/camera_info"/>
         <remap from="/cbf_pc_selector/input_image" to="/d455/depth/image_rect_raw"/>
-        <remap from="/cbf_pc_selector/selected_pc_mavros" to="/mavros/tof_obstacles"/>
+        <remap from="/cbf_pc_selector/selected_pc_mavros" to="/mavros/obstacles"/>
     </node>
 </launch>

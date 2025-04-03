@@ -53,23 +53,22 @@ public:
                 _bins[u][v].reserve(5000);
 
         // lookup transforms
-        std::string frame_cam, frame_body, frame_mavros;
-        _nh.getParam("/cbf_pc_selector/frame_cam", frame_cam);
-        _nh.getParam("/cbf_pc_selector/frame_body", frame_body);
-        _nh.getParam("/cbf_pc_selector/frame_mavros", frame_mavros);
+        _nh.getParam("/cbf_pc_selector/frame_cam", _frame_cam);
+        _nh.getParam("/cbf_pc_selector/frame_body", _frame_body);
+        _nh.getParam("/cbf_pc_selector/frame_mavros", _frame_mavros);
 
         bool transform_body = false;
         while (!transform_body)
         {
             try
             {
-                _T_cam_body = _tf_buffer.lookupTransform(frame_cam, frame_body, ros::Time(0));
+                _T_cam_body = _tf_buffer.lookupTransform(_frame_body, _frame_cam, ros::Time(0));
                 transform_body = true;
             }
             catch (tf2::TransformException &ex)
             {
                 ROS_WARN_STREAM("Could not get transform: " << ex.what());
-                ros::Duration(0.01).sleep();
+                ros::Duration(1).sleep();
             }
         }
 
@@ -78,13 +77,13 @@ public:
         {
             try
             {
-                _T_cam_mavros = _tf_buffer.lookupTransform(frame_cam, frame_mavros, ros::Time(0));
+                _T_body_mavros = _tf_buffer.lookupTransform(_frame_mavros, _frame_body, ros::Time(0));
                 transform_mavros = true;
             }
             catch (tf2::TransformException &ex)
             {
                 ROS_WARN_STREAM("Could not get transform: " << ex.what());
-                ros::Duration(0.01).sleep();
+                ros::Duration(1).sleep();
             }
         }
 
@@ -206,14 +205,16 @@ private:
         // publish
         sensor_msgs::PointCloud2 pc_msg_body;
         tf2::doTransform(pc_msg, pc_msg_body, _T_cam_body);
-        _nh.getParam("/cbf_pc_selector/frame_body", pc_msg_body.header.frame_id);
+        pc_msg_body.header.frame_id = _frame_body;
+        pc_msg_body.header.stamp = pc_msg.header.stamp;
         _pc_pub.publish(pc_msg_body);
 
         if (_publish_mavros)
         {
             sensor_msgs::PointCloud2 pc_msg_mavros;
-            tf2::doTransform(pc_msg, pc_msg_mavros, _T_cam_mavros);
-            _nh.getParam("/cbf_pc_selector/frame_mavros", pc_msg_mavros.header.frame_id);
+            tf2::doTransform(pc_msg_body, pc_msg_mavros, _T_body_mavros);
+            pc_msg_mavros.header.frame_id = _frame_mavros;
+            pc_msg_mavros.header.stamp = pc_msg.header.stamp;
             _mavros_pub.publish(pc_msg_mavros);
         }
 
@@ -233,7 +234,11 @@ private:
     tf2_ros::TransformListener _tf_listener{_tf_buffer};
 
     geometry_msgs::TransformStamped _T_cam_body;
-    geometry_msgs::TransformStamped _T_cam_mavros;
+    geometry_msgs::TransformStamped _T_body_mavros;
+
+    std::string _frame_cam;
+    std::string _frame_body;
+    std::string _frame_mavros;
 
     ros::Subscriber _camera_info_sub;
     ros::Subscriber _image_sub;
