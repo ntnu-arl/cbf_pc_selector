@@ -11,7 +11,7 @@
 #include <vector>
 #include <algorithm>
 
-// #include <iostream>
+#include <iostream>
 // #include <chrono>
 
 
@@ -57,13 +57,13 @@ public:
         _nh.getParam("/cbf_pc_selector/frame_body", _frame_body);
         _nh.getParam("/cbf_pc_selector/frame_mavros", _frame_mavros);
 
-        bool transform_body = false;
-        while (!transform_body)
+        bool got_transform_body = false;
+        while (!got_transform_body)
         {
             try
             {
                 _T_cam_body = _tf_buffer.lookupTransform(_frame_body, _frame_cam, ros::Time(0));
-                transform_body = true;
+                got_transform_body = true;
             }
             catch (tf2::TransformException &ex)
             {
@@ -72,13 +72,13 @@ public:
             }
         }
 
-        bool transform_mavros = _publish_mavros;
-        while (!transform_mavros)
+        bool got_transform_mavros = !_publish_mavros;
+        while (!got_transform_mavros)
         {
             try
             {
                 _T_body_mavros = _tf_buffer.lookupTransform(_frame_mavros, _frame_body, ros::Time(0));
-                transform_mavros = true;
+                got_transform_mavros = true;
             }
             catch (tf2::TransformException &ex)
             {
@@ -87,11 +87,12 @@ public:
             }
         }
 
-        // subscribers
+        // sub & pub
         _camera_info_sub = _nh.subscribe("/cbf_pc_selector/camera_info", 1, &CbfPcSelector::cameraInfoCb, this);
         _image_sub = _nh.subscribe("/cbf_pc_selector/input_image", 1, &CbfPcSelector::imageCb, this);
         _pc_pub = _nh.advertise<sensor_msgs::PointCloud2>("/cbf_pc_selector/output_pc", 1);
-        _mavros_pub = _nh.advertise<sensor_msgs::PointCloud2>("/cbf_pc_selector/output_mavros", 1);
+        if (_publish_mavros)
+            _mavros_pub = _nh.advertise<sensor_msgs::PointCloud2>("/cbf_pc_selector/output_mavros", 1);
     }
 
 private:
@@ -166,67 +167,73 @@ private:
             }
         }
 
-        // sort n-th closest points
-        size_t nb_points;
-        if (_nb_pts_max < _points.size())
+        if (!_points.size())
         {
-            std::nth_element(_points.begin(), _points.begin() + _nb_pts_max, _points.end(), &ppSorter);
-            nb_points = _nb_pts_max;
+            ROS_WARN_STREAM("no points extracted from image (check _min_per_bin)");
         }
-        else
         {
-            nb_points = _points.size();
+            // sort n-th closest points
+            size_t nb_points;
+            if (_nb_pts_max < _points.size())
+            {
+                std::nth_element(_points.begin(), _points.begin() + _nb_pts_max, _points.end(), &ppSorter);
+                nb_points = _nb_pts_max;
+            }
+            else
+            {
+                nb_points = _points.size();
+            }
+
+            // fill PointCloud2
+            sensor_msgs::PointCloud2 pc_msg;
+            pc_msg.header.stamp = msg->header.stamp;
+
+            sensor_msgs::PointCloud2Modifier pc_modifier(pc_msg);
+            pc_modifier.setPointCloud2Fields(3,
+                "x", 1, sensor_msgs::PointField::FLOAT32,
+                "y", 1, sensor_msgs::PointField::FLOAT32,
+                "z", 1, sensor_msgs::PointField::FLOAT32
+            );
+            pc_modifier.resize(nb_points);
+
+            sensor_msgs::PointCloud2Iterator<float> iter_x(pc_msg, "x");
+            sensor_msgs::PointCloud2Iterator<float> iter_y(pc_msg, "y");
+            sensor_msgs::PointCloud2Iterator<float> iter_z(pc_msg, "z");
+
+            for (size_t i = 0; i < nb_points; i++, ++iter_x, ++iter_y, ++iter_z)
+            {
+                PixelPoint& pp = _points[i];
+                *iter_x = pp.x;
+                *iter_y = pp.y;
+                *iter_z = pp.z;
+            }
+
+            // publish
+            sensor_msgs::PointCloud2 pc_msg_body;
+            tf2::doTransform(pc_msg, pc_msg_body, _T_cam_body);
+            pc_msg_body.header.frame_id = _frame_body;
+            pc_msg_body.header.stamp = pc_msg.header.stamp;
+            _pc_pub.publish(pc_msg_body);
+
+            if (_publish_mavros)
+            {
+                sensor_msgs::PointCloud2 pc_msg_mavros;
+                tf2::doTransform(pc_msg_body, pc_msg_mavros, _T_body_mavros);
+                pc_msg_mavros.header.frame_id = _frame_mavros;
+                pc_msg_mavros.header.stamp = pc_msg.header.stamp;
+                _mavros_pub.publish(pc_msg_mavros);
+            }
+
+            // auto end = std::chrono::system_clock::now();
+            // std::chrono::duration<double> elapsed_seconds = end-start;
+            // static double elapsed_time_sum = 0;
+            // static size_t count = 0;
+            // elapsed_time_sum += elapsed_seconds.count();
+            // count++;
+            //
+            // if (count % 90 == 0)
+            //     std::cout << "average elapsed time: " << elapsed_time_sum / (double)count * 1e3 << " ms\n";
         }
-
-        // fill PointCloud2
-        sensor_msgs::PointCloud2 pc_msg;
-        pc_msg.header.stamp = msg->header.stamp;
-
-        sensor_msgs::PointCloud2Modifier pc_modifier(pc_msg);
-        pc_modifier.setPointCloud2Fields(3,
-            "x", 1, sensor_msgs::PointField::FLOAT32,
-            "y", 1, sensor_msgs::PointField::FLOAT32,
-            "z", 1, sensor_msgs::PointField::FLOAT32
-        );
-        pc_modifier.resize(nb_points);
-
-        sensor_msgs::PointCloud2Iterator<float> iter_x(pc_msg, "x");
-        sensor_msgs::PointCloud2Iterator<float> iter_y(pc_msg, "y");
-        sensor_msgs::PointCloud2Iterator<float> iter_z(pc_msg, "z");
-
-        for (size_t i = 0; i < nb_points; i++, ++iter_x, ++iter_y, ++iter_z)
-        {
-            PixelPoint& pp = _points[i];
-            *iter_x = pp.x;
-            *iter_y = pp.y;
-            *iter_z = pp.z;
-        }
-
-        // publish
-        sensor_msgs::PointCloud2 pc_msg_body;
-        tf2::doTransform(pc_msg, pc_msg_body, _T_cam_body);
-        pc_msg_body.header.frame_id = _frame_body;
-        pc_msg_body.header.stamp = pc_msg.header.stamp;
-        _pc_pub.publish(pc_msg_body);
-
-        if (_publish_mavros)
-        {
-            sensor_msgs::PointCloud2 pc_msg_mavros;
-            tf2::doTransform(pc_msg_body, pc_msg_mavros, _T_body_mavros);
-            pc_msg_mavros.header.frame_id = _frame_mavros;
-            pc_msg_mavros.header.stamp = pc_msg.header.stamp;
-            _mavros_pub.publish(pc_msg_mavros);
-        }
-
-        // auto end = std::chrono::system_clock::now();
-        // std::chrono::duration<double> elapsed_seconds = end-start;
-        // static double elapsed_time_sum = 0;
-        // static size_t count = 0;
-        // elapsed_time_sum += elapsed_seconds.count();
-        // count++;
-        //
-        // if (count % 90 == 0)
-        //     std::cout << "average elapsed time: " << elapsed_time_sum / (double)count * 1e3 << " ms\n";
     }
 
     ros::NodeHandle _nh;
