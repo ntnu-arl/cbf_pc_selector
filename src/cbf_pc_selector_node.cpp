@@ -64,6 +64,7 @@ public:
             {
                 _T_cam_body = _tf_buffer.lookupTransform(_frame_body, _frame_cam, ros::Time(0));
                 got_transform_body = true;
+                ROS_INFO_STREAM("Got camera-body transform");
             }
             catch (tf2::TransformException &ex)
             {
@@ -79,6 +80,7 @@ public:
             {
                 _T_body_mavros = _tf_buffer.lookupTransform(_frame_mavros, _frame_body, ros::Time(0));
                 got_transform_mavros = true;
+                ROS_INFO_STREAM("Got body-mavros transform");
             }
             catch (tf2::TransformException &ex)
             {
