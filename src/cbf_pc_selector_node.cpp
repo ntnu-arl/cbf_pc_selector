@@ -38,9 +38,7 @@ public:
         _nh.getParam("/cbf_pc_selector/percentile", _percentile);
         _percentile = _percentile / 100;
         _nh.getParam("/cbf_pc_selector/min_range", _min_range);
-        _min_range = _min_range * 1000;
         _nh.getParam("/cbf_pc_selector/max_range", _max_range);
-        _max_range = _max_range * 1000;
 
         // allocate bins
         _nh.getParam("/cbf_pc_selector/bins_h", _image_width);
@@ -64,11 +62,11 @@ public:
             {
                 _T_cam_body = _tf_buffer.lookupTransform(_frame_body, _frame_cam, ros::Time(0));
                 got_transform_body = true;
-                ROS_INFO_STREAM("Got camera-body transform");
+                ROS_INFO("[cbf_pc_selector] Got camera-body transform");
             }
             catch (tf2::TransformException &ex)
             {
-                ROS_WARN_STREAM("Could not get transform: " << ex.what());
+                ROS_WARN("[cbf_pc_selector] Could not get transform: %s", ex.what());
                 ros::Duration(1).sleep();
             }
         }
@@ -80,11 +78,11 @@ public:
             {
                 _T_body_mavros = _tf_buffer.lookupTransform(_frame_mavros, _frame_body, ros::Time(0));
                 got_transform_mavros = true;
-                ROS_INFO_STREAM("Got body-mavros transform");
+                ROS_INFO("[cbf_pc_selector] Got body-mavros transform");
             }
             catch (tf2::TransformException &ex)
             {
-                ROS_WARN_STREAM("Could not get transform: " << ex.what());
+                ROS_WARN("[cbf_pc_selector] Could not get transform: %s", ex.what());
                 ros::Duration(1).sleep();
             }
         }
@@ -107,6 +105,13 @@ private:
         _fy = msg->K[4] * scale_y;
         _cx = msg->K[2] * scale_x;
         _cy = msg->K[5] * scale_y;
+
+        // for Gazebo, override the intrinsics since camera info is fckd up
+        // float f = msg->width / (2 * tan(1.52 / 2.));
+        // _fx = f * scale_x;
+        // _fy = f * scale_y;
+        // _cx = msg->width / 2 * scale_x;
+        // _cy = msg->height / 2 * scale_y;
     }
 
     void imageCb(const sensor_msgs::ImageConstPtr &msg)
@@ -114,8 +119,6 @@ private:
         // exit if intrinsics not received
         if (_fx == 0.f)
             return;
-
-        // auto start = std::chrono::system_clock::now();
 
         // loop over all pixels
         size_t width = msg->width;
@@ -126,13 +129,22 @@ private:
         int u_bin, v_bin;
         for (size_t u = 0; u < height; ++u)
         {
-            const uint16_t* row = reinterpret_cast<const uint16_t*>(data + u * step);
+            const float* row;
+            if (msg->encoding == "32FC1" || msg->encoding == "16UC1")
+            {
+                row = reinterpret_cast<const float*>(data + u * step);
+            }
+            else
+            {
+                ROS_WARN("[cbf_pc_selector] image encoding not supported");
+                return;
+            }
             for (size_t v = 0; v < width; ++v)
             {
-                uint16_t depth_mm = row[v];
+                float depth = (msg->encoding == "16UC1") ? row[v] / 1000.f : row[v];
 
                 // disregard invalid pixels
-                if (depth_mm < _min_range || depth_mm > _max_range)
+                if (depth < _min_range || depth > _max_range)
                     continue;
 
                 // get corresponding bin
@@ -142,7 +154,7 @@ private:
                 u_bin = std::min(std::max(0, u_bin), _image_height - 1);
 
                 // store
-                _bins[u_bin][v_bin].push_back(depth_mm / 1000.f);
+                _bins[u_bin][v_bin].push_back(depth);
             }
         }
 
@@ -171,7 +183,7 @@ private:
 
         if (!_points.size())
         {
-            ROS_WARN_STREAM("no points extracted from image (check _min_per_bin)");
+            ROS_WARN("[cbf_pc_selector] no points extracted from image (check _min_per_bin)");
         }
         {
             // sort n-th closest points
@@ -225,16 +237,6 @@ private:
                 pc_msg_mavros.header.stamp = pc_msg.header.stamp;
                 _mavros_pub.publish(pc_msg_mavros);
             }
-
-            // auto end = std::chrono::system_clock::now();
-            // std::chrono::duration<double> elapsed_seconds = end-start;
-            // static double elapsed_time_sum = 0;
-            // static size_t count = 0;
-            // elapsed_time_sum += elapsed_seconds.count();
-            // count++;
-            //
-            // if (count % 90 == 0)
-            //     std::cout << "average elapsed time: " << elapsed_time_sum / (double)count * 1e3 << " ms\n";
         }
     }
 

@@ -1,0 +1,11 @@
+bins_h: 10
+bins_v: 5
+nb_obstacles: 50
+percentile: 10  # [%]
+min_ratio_per_bin: 0  # minimum occupancy ratio for bins to be considered
+min_range: 0.1  # [m]
+max_range: 5  # [m]
+frame_cam: rmf_owl/base_link/depth_cam/optical
+frame_body: rmf_owl/base_link
+frame_mavros: ""
+publish_to_mavros: False
