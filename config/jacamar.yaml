@@ -1,8 +1,8 @@
-bins_h: 30
-bins_v: 20
-nb_obstacles: 150
-percentile: 20  # [%]
-min_ratio_per_bin: 0.1  # minimum occupancy ratio for bins to be considered
+bins_h: 10
+bins_v: 5
+nb_obstacles: 50
+percentile: 10  # [%]
+min_ratio_per_bin: 0  # minimum occupancy ratio for bins to be considered
 min_range: 0.1  # [m]
 max_range: 5  # [m]
 frame_cam: d455_depth_optical_frame

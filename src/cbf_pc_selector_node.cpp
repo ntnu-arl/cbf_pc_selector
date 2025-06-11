@@ -118,7 +118,11 @@ private:
     {
         // exit if intrinsics not received
         if (_fx == 0.f)
+        {
+            ROS_WARN("[cbf_pc_selector] no intrinsics received, check camera_info topic");
+            ros::Duration(1).sleep();
             return;
+        }
 
         // loop over all pixels
         size_t width = msg->width;
@@ -129,32 +133,52 @@ private:
         int u_bin, v_bin;
         for (size_t u = 0; u < height; ++u)
         {
-            const float* row;
-            if (msg->encoding == "32FC1" || msg->encoding == "16UC1")
+            if (msg->encoding == "32FC1")
             {
-                row = reinterpret_cast<const float*>(data + u * step);
+                const float* row = reinterpret_cast<const float*>(data + u * step);
+                for (size_t v = 0; v < width; ++v)
+                {
+                    float depth = row[v];
+
+                    // disregard invalid pixels
+                    if (depth < _min_range || depth > _max_range)
+                        continue;
+
+                    // get corresponding bin
+                    v_bin = (float)v / width * _image_width;
+                    v_bin = std::min(std::max(0, v_bin), _image_width - 1);
+                    u_bin = (float)u / height * _image_height;
+                    u_bin = std::min(std::max(0, u_bin), _image_height - 1);
+
+                    // store
+                    _bins[u_bin][v_bin].push_back(depth);
+                }
+            }
+            else if (msg->encoding == "16UC1")
+            {
+                const uint16_t* row = reinterpret_cast<const uint16_t*>(data + u * step);
+                for (size_t v = 0; v < width; ++v)
+                {
+                    float depth = static_cast<float>(row[v]) / 1000.f;
+
+                    // disregard invalid pixels
+                    if (depth < _min_range || depth > _max_range)
+                        continue;
+
+                    // get corresponding bin
+                    v_bin = (float)v / width * _image_width;
+                    v_bin = std::min(std::max(0, v_bin), _image_width - 1);
+                    u_bin = (float)u / height * _image_height;
+                    u_bin = std::min(std::max(0, u_bin), _image_height - 1);
+
+                    // store
+                    _bins[u_bin][v_bin].push_back(depth);
+                }
             }
             else
             {
                 ROS_WARN("[cbf_pc_selector] image encoding not supported");
                 return;
-            }
-            for (size_t v = 0; v < width; ++v)
-            {
-                float depth = (msg->encoding == "16UC1") ? row[v] / 1000.f : row[v];
-
-                // disregard invalid pixels
-                if (depth < _min_range || depth > _max_range)
-                    continue;
-
-                // get corresponding bin
-                v_bin = (float)v / width * _image_width;
-                v_bin = std::min(std::max(0, v_bin), _image_width - 1);
-                u_bin = (float)u / height * _image_height;
-                u_bin = std::min(std::max(0, u_bin), _image_height - 1);
-
-                // store
-                _bins[u_bin][v_bin].push_back(depth);
             }
         }
 
