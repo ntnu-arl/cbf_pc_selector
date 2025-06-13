@@ -1,11 +1,11 @@
-bins_h: 16
-bins_v: 9
+bins_h: 32
+bins_v: 4
 nb_obstacles: 200
 percentile: 10  # [%]
 min_ratio_per_bin: 0.05  # minimum occupancy ratio for bins to be considered
-min_range: 0.1  # [m]
+min_range: 0.5  # [m]
 max_range: 10  # [m]
-frame_cam: d455_depth_optical_frame
+frame_cam: os_sensor
 frame_body: base_link
 frame_mavros: base_link_frd
 publish_to_mavros: false
