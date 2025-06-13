@@ -1,11 +1,14 @@
 bins_h: 32
-bins_v: 4
-nb_obstacles: 200
+bins_v: 8
+nb_obstacles: 10000
 percentile: 10  # [%]
-min_ratio_per_bin: 0.05  # minimum occupancy ratio for bins to be considered
-min_range: 0.5  # [m]
+min_ratio_per_bin: 0  # minimum occupancy ratio for bins to be considered
+min_range: 0.6  # [m]
 max_range: 10  # [m]
+mm_resolution: 4  # mm value in 1 pixel unit
+override_camerainfo: true
+hfov: 3.1415  # [rad] halved horizontal FoV
 frame_cam: os_sensor
-frame_body: base_link
+frame_body: os_sensor
 frame_mavros: base_link_frd
 publish_to_mavros: false

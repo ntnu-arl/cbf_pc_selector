@@ -12,6 +12,7 @@
 #include <algorithm>
 
 #include <iostream>
+// #include <chrono>
 
 
 struct PixelPoint
@@ -21,7 +22,7 @@ struct PixelPoint
 
 bool ppSorter(PixelPoint& p1, PixelPoint& p2)
 {
-    return p1.x * p1.x + p1.y * p1.y + p1.z * p1.z < p2.x * p2.x + p2.y * p2.y + p2.z * p2.z;
+    return p1.z < p2.z;
 }
 
 
@@ -38,16 +39,10 @@ public:
         _percentile = _percentile / 100;
         _nh.getParam("/cbf_pc_selector/min_range", _min_range);
         _nh.getParam("/cbf_pc_selector/max_range", _max_range);
-        _nh.getParam("/cbf_pc_selector/override_camerainfo", _override_camerainfo);
-        _nh.getParam("/cbf_pc_selector/bins_h", _image_width);
-        _nh.getParam("/cbf_pc_selector/bins_v", _image_height);
-        _nh.getParam("/cbf_pc_selector/hfov", _hfov);
-        _vfov = _hfov / _image_width * _image_height;
-        float mm_res;
-        _nh.getParam("/cbf_pc_selector/mm_resolution", mm_res);
-        _pix_to_meters = mm_res / 1000.f;
 
         // allocate bins
+        _nh.getParam("/cbf_pc_selector/bins_h", _image_width);
+        _nh.getParam("/cbf_pc_selector/bins_v", _image_height);
         _points.reserve(_image_width * _image_height);
 
         _bins = std::vector<std::vector<std::vector<float>>>(_image_height, std::vector<std::vector<float>>(_image_width));
@@ -110,6 +105,13 @@ private:
         _fy = msg->K[4] * scale_y;
         _cx = msg->K[2] * scale_x;
         _cy = msg->K[5] * scale_y;
+
+        // for Gazebo, override the intrinsics since camera info is fckd up
+        // float f = msg->width / (2 * tan(1.52 / 2.));
+        // _fx = f * scale_x;
+        // _fy = f * scale_y;
+        // _cx = msg->width / 2 * scale_x;
+        // _cy = msg->height / 2 * scale_y;
     }
 
     void imageCb(const sensor_msgs::ImageConstPtr &msg)
@@ -117,23 +119,9 @@ private:
         // exit if intrinsics not received
         if (_fx == 0.f)
         {
-            if (_override_camerainfo && _hfov > 0.f)
-            {
-                float scale_x = (float)_image_width / msg->width;
-                float scale_y = (float)_image_height / msg->height;
-                float f = msg->width / (2 * tan(_hfov));
-                ROS_INFO("%i %f", msg->width, f);
-                _fx = f * scale_x;
-                _fy = f * scale_y;
-                _cx = _image_width / 2;
-                _cy = _image_height / 2;
-            }
-            else
-            {
-                ROS_WARN("[cbf_pc_selector] no intrinsics received, check camera_info topic and config file");
-                ros::Duration(1).sleep();
-                return;
-            }
+            ROS_WARN("[cbf_pc_selector] no intrinsics received, check camera_info topic");
+            ros::Duration(1).sleep();
+            return;
         }
 
         // loop over all pixels
@@ -150,7 +138,7 @@ private:
                 const float* row = reinterpret_cast<const float*>(data + u * step);
                 for (size_t v = 0; v < width; ++v)
                 {
-                    float depth = row[v] * _pix_to_meters;
+                    float depth = row[v];
 
                     // disregard invalid pixels
                     if (depth < _min_range || depth > _max_range)
@@ -166,12 +154,12 @@ private:
                     _bins[u_bin][v_bin].push_back(depth);
                 }
             }
-            else if (msg->encoding == "16UC1" || msg->encoding == "mono16")
+            else if (msg->encoding == "16UC1")
             {
                 const uint16_t* row = reinterpret_cast<const uint16_t*>(data + u * step);
                 for (size_t v = 0; v < width; ++v)
                 {
-                    float depth = static_cast<float>(row[v]) * _pix_to_meters;
+                    float depth = static_cast<float>(row[v]) / 1000.f;
 
                     // disregard invalid pixels
                     if (depth < _min_range || depth > _max_range)
@@ -200,21 +188,29 @@ private:
         {
             for (size_t v = 0; v < _image_width; v++)
             {
-                if (_bins[u][v].size() > 0)
+                if (_bins[u][v].size() > _min_per_bin)
                 {
                     // parial sort
                     size_t idx = static_cast<size_t>(_bins[u][v].size() * _percentile);
                     std::nth_element(_bins[u][v].begin(), _bins[u][v].begin() + idx, _bins[u][v].end());
 
-                    float range = _bins[u][v][idx];
-                    float azimuth = _hfov - (((float)v + 0.5) / (_image_width - 1)) * (2 * _hfov);
-                    float elevation = _vfov - (((float)u + 0.5) / (_image_height - 1)) * (2 * _vfov);
+
+                    tan_hfov = np.tan(self.hfov)
+                    tan_vfov = np.tan(self.vfov)
+                    u = np.arange(0, self.shape_img[1], 1)
+                    v = np.arange(0, self.shape_img[0], 1)
+                    u, v = np.meshgrid(u, v, indexing='xy')
+                    x = np.ones_like(u)
+                    y = tan_hfov * (1 - u / (u.shape[1] // 2))
+                    z = tan_vfov * (1 - v / (u.shape[0] // 2))
+                    self.p = np.stack([x, y, z], axis=0)
+                    self.p = self.p / np.linalg.norm(self.p, axis=0)
 
                     // point coordinates in FLU
                     PixelPoint pp;
-                    pp.x = range * cos(elevation) * cos(azimuth);
-                    pp.y = range * cos(elevation) * sin(azimuth);
-                    pp.z = range * sin(elevation);
+                    pp.z = _bins[u][v][idx];
+                    pp.x = (v + 0.5 - _cx) / _fx * pp.z;
+                    pp.y = (u + 0.5 - _cy) / _fy * pp.z;
                     _points.push_back(pp);
                 }
                 _bins[u][v].clear();
@@ -304,10 +300,6 @@ private:
     float _min_range, _max_range;
     float _percentile, _min_ratio_bin;
     bool _publish_mavros;
-    bool _override_camerainfo;
-    float _hfov = 0.f;
-    float _vfov;
-    float _pix_to_meters;
 };
 
 

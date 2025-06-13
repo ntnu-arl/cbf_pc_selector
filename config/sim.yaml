@@ -5,6 +5,9 @@ percentile: 10  # [%]
 min_ratio_per_bin: 0  # minimum occupancy ratio for bins to be considered
 min_range: 0.1  # [m]
 max_range: 5  # [m]
+mm_resolution: 1000  # mm value in 1 pixel unit
+override_camerainfo: true
+hfov: 0.76  # [rad] halved horizontal FoV
 frame_cam: rmf_owl/base_link/depth_cam/optical
 frame_body: rmf_owl/base_link
 frame_mavros: ""

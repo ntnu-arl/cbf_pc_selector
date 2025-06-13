@@ -1,10 +1,11 @@
-bins_h: 20
-bins_v: 10
-nb_obstacles: 200
-percentile: 20
-min_range: 0.1  # [m]
-max_range: 5  # [m]
-hfov: 90  # [deg]
-vfov: 106  # [deg]
-body_frame: imu
-publish_to_mavros: True
+# bins_h: 20
+# bins_v: 10
+# nb_obstacles: 200
+# percentile: 20
+# min_range: 0.1  # [m]
+# max_range: 5  # [m]
+# hfov: 90  # [deg]
+# vfov: 106  # [deg]
+# body_frame: imu
+# publish_to_mavros: True
+OUTDATED, CHECK AND FIX THE ABOVE
