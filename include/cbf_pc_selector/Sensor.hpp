@@ -21,51 +21,49 @@ public:
 
     void camInfoCb(const sensor_msgs::CameraInfoConstPtr& msg);
     void imgCb(const sensor_msgs::ImageConstPtr& msg);
+    void pcCb(const sensor_msgs::PointCloud2ConstPtr& msg);
 
-    bool isInit() {return _tf_init;};
-    void allocatePointsBins();
     sensor_msgs::PointCloud2 pcInBody();
+
+    // TODO make the field below accessible via getters?
+    std::string _topic;  // sensor data topic
+    std::string _frame;  // ROS frame of sensor data
+
+    std::string _camInfo_topic;  // sensor cameraInfo topic
+    bool _use_camInfo;  // use cameraInfo topic or autocompute intrinsics from resolution and fov
+
+    bool _isPointcloud;  // input is pointcloud instead of image (not used ATM)
+    bool _isPolar;  // polar or pinhole projection
+    bool _proj_init = false;
+    bool _tf_init = false;
+
+    geometry_msgs::TransformStamped _T_cam_body;  // ROS transform from camera frame to body frame
+    ros::Subscriber _camInfoSub;
+    ros::Subscriber _sensorSub;
+private:
+    void allocatePointsBins();
+    void binsToPoints();
 
     std::vector<std::vector<std::vector<float>>> _bins;
     sensor_msgs::PointCloud2 _points;
 
-    bool _proj_init = false;
-    bool _tf_init = false;
-
     std::function<void()> _notify_node_cb;  // callback to notify node after processing message
-
-    geometry_msgs::TransformStamped _T_cam_body;  // ROS transform from camera frame to body frame
-
-    std::string _topic;  // sensor data topic
-    std::string _frame;  // ROS frame of sensor data
 
     int _bin_h;  // nb of height binning of downscaled image
     int _bin_w;  // nb of width binning of downscaled image [pixels]
+    float _pix_to_meters;  // convertion ratio from pixel values to meters
 
     float _percentile;  // percentile filtering for each bin
     int _min_per_bin;  // minimum nb of valid pixels for bins to be considered
+    int _pix_per_bin;  // nb of pixels per bin for reserve
 
-    bool _use_camInfo;  // use cameraInfo topic or autocompute intrinsics from resolution and fov
-    std::string _camInfo_topic;  // sensor cameraInfo topic
-
-    bool _isPointcloud;  // input is pointcloud instead of image (not used ATM)
-    bool _isPolar;  // polar or pinhole projection
-
-    float _pix_to_meters;  // convertion ratio from pixel values to meters
-
-    float _hfov;  // halved horizontal FoV [rad]
-    float _vfov;  // halved vertical FoV [rad]
-    int _h;  // image height [pixels]
-    int _w;  // image width [pixels]
+    float _h, _w;  // input image size [pix]
+    float _hfov, _vfov;  // halved horizontal and vertical FoV [rad]
+    float _az_min, _az_max, _el_min, _el_max;  // min and max azimuth and elevation[rad]
 
     float _fy, _fx, _cx, _cy;  // intrinsics for pinhole model projection
 
     float _min_range, _max_range;  // image distance clipping
-
-    int _pix_per_bin;  // nb of pixels per bin for reserve
-
-    ros::Subscriber _camInfoSub;
-    ros::Subscriber _imgSub;
 };
 
 #endif // CBFPCSEL_SENSOR

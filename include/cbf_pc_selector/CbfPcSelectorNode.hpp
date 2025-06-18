@@ -25,6 +25,7 @@ private:
     bool allSensorsAreInit();
     void onSensorCb();
 
+    sensor_msgs::PointCloud2 _out_msg;
 
     ros::NodeHandle _nh;
     tf2_ros::Buffer _tf_buffer;

@@ -85,11 +85,25 @@ CbfPcSelectorNode::CbfPcSelectorNode()
     if (_publish_mavros)
         _mavros_pub = _nh.advertise<sensor_msgs::PointCloud2>("/cbf_pc_selector/output_mavros", 1);
 
+    // init output pc
+    _out_msg.header.frame_id = _frame_body;
+    sensor_msgs::PointCloud2Modifier pc_mod(_out_msg);
+    pc_mod.setPointCloud2Fields(3,
+        "x", 1, sensor_msgs::PointField::FLOAT32,
+        "y", 1, sensor_msgs::PointField::FLOAT32,
+        "z", 1, sensor_msgs::PointField::FLOAT32
+    );
+    pc_mod.reserve(10000);  // TODO make this non arbitrary
+    _out_msg.height = 1;
 
-    // finally subscribe to all image topics
+
+    // subscribe to all image topics
     for (const auto& sensor : _sensors)
     {
-        sensor->_imgSub = _nh.subscribe<sensor_msgs::Image>(sensor->_topic, 1, &Sensor::imgCb, sensor.get());
+        if (sensor->_isPointcloud)
+            sensor->_sensorSub = _nh.subscribe<sensor_msgs::PointCloud2>(sensor->_topic, 1, &Sensor::pcCb, sensor.get());
+        else
+            sensor->_sensorSub = _nh.subscribe<sensor_msgs::Image>(sensor->_topic, 1, &Sensor::imgCb, sensor.get());
         ROS_INFO("[cbf_pc_selector] callback registered to topic %s", sensor->_topic.c_str());
     }
 }
@@ -97,7 +111,7 @@ CbfPcSelectorNode::CbfPcSelectorNode()
 bool CbfPcSelectorNode::allSensorsAreInit()
 {
     for (auto& sensor : _sensors)
-        if (!sensor->isInit())
+        if (!sensor->_tf_init)
             return false;
     return true;
 }
@@ -108,40 +122,33 @@ void CbfPcSelectorNode::onSensorCb()
     // TODO lock mutex?
 
     // populate pc message
-    sensor_msgs::PointCloud2 pc_msg;
-    pc_msg.header.frame_id = _frame_body;
-    pc_msg.header.stamp = ros::Time::now();
+    _out_msg.header.stamp = ros::Time::now();
+    sensor_msgs::PointCloud2Modifier pc_mod(_out_msg);
+    sensor_msgs::PointCloud2Iterator<float> iter_x(_out_msg, "x");
+    sensor_msgs::PointCloud2Iterator<float> iter_y(_out_msg, "y");
+    sensor_msgs::PointCloud2Iterator<float> iter_z(_out_msg, "z");
 
-    sensor_msgs::PointCloud2Modifier pc_mod(pc_msg);
-    pc_mod.setPointCloud2Fields(3,
-        "x", 1, sensor_msgs::PointField::FLOAT32,
-        "y", 1, sensor_msgs::PointField::FLOAT32,
-        "z", 1, sensor_msgs::PointField::FLOAT32
-    );
-    pc_mod.reserve(100000);
+    _out_msg.data.resize(0);
+    _out_msg.width = 0;
+    _out_msg.row_step = 0;
 
-    sensor_msgs::PointCloud2Iterator<float> iter_x(pc_msg, "x");
-    sensor_msgs::PointCloud2Iterator<float> iter_y(pc_msg, "y");
-    sensor_msgs::PointCloud2Iterator<float> iter_z(pc_msg, "z");
-
-    size_t nb_points = 0;
     for (const auto& sensor : _sensors)
     {
         sensor_msgs::PointCloud2 pc_k = sensor->pcInBody();
 
-        pc_msg.data.insert(pc_msg.data.end(), pc_k.data.begin(), pc_k.data.end());
-        pc_msg.width += pc_k.width;
-        pc_msg.row_step = pc_msg.width * pc_msg.point_step;
+        _out_msg.data.insert(_out_msg.data.end(), pc_k.data.begin(), pc_k.data.end());
+        _out_msg.width += pc_k.width;
+        _out_msg.row_step = _out_msg.width * _out_msg.point_step;
     }
-    pc_mod.resize(pc_msg.width);
-    _pc_pub.publish(pc_msg);
+    pc_mod.resize(_out_msg.width);
+    _pc_pub.publish(_out_msg);
 
     if (_publish_mavros)
     {
         sensor_msgs::PointCloud2 pc_msg_mavros;
-        tf2::doTransform(pc_msg, pc_msg_mavros, _T_body_mavros);
+        tf2::doTransform(_out_msg, pc_msg_mavros, _T_body_mavros);
         pc_msg_mavros.header.frame_id = _frame_mavros;
-        pc_msg_mavros.header.stamp = pc_msg.header.stamp;
+        pc_msg_mavros.header.stamp = _out_msg.header.stamp;
         _mavros_pub.publish(pc_msg_mavros);
     }
 }
