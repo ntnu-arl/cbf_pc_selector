@@ -4,6 +4,8 @@ project(cbf_pc_selector)
 set(CMAKE_CXX_FLAGS "-O3")
 add_compile_options(-std=c++17)
 
+find_package(yaml-cpp REQUIRED)
+
 find_package(catkin REQUIRED COMPONENTS
     roscpp
     sensor_msgs
@@ -17,11 +19,14 @@ catkin_package(
 )
 
 include_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${catkin_INCLUDE_DIRS}
+    ${YAML_CPP_INCLUDE_DIR}
 )
 
-add_executable(cbf_pc_selector_node src/cbf_pc_selector_node.cpp)
+add_executable(cbf_pc_selector_node src/CbfPcSelectorNode.cpp src/Sensor.cpp)
 target_link_libraries(
     cbf_pc_selector_node
     ${catkin_LIBRARIES}
+    yaml-cpp
 )
