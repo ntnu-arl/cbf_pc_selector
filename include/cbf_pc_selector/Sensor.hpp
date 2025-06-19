@@ -57,7 +57,6 @@ private:
     int _min_per_bin;  // minimum nb of valid pixels for bins to be considered
     int _pix_per_bin;  // nb of pixels per bin for reserve
 
-    float _h, _w;  // input image size [pix]
     float _hfov, _vfov;  // halved horizontal and vertical FoV [rad]
     float _az_min, _az_max, _el_min, _el_max;  // min and max azimuth and elevation[rad]
 

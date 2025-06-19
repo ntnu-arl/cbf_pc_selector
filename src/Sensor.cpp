@@ -40,15 +40,14 @@ Sensor::Sensor(const YAML::Node& node,
     {
         _use_camInfo = false;
 
-        // get resolution and fov info from yaml
-        if (!node["image_h"] || !node["image_w"])
-            throw std::runtime_error("yaml missing image_size");
-        _h = node["image_h"].as<int>();
-        _w = node["image_w"].as<int>();
-
         // compute intrinsics for pinhole projection
         if (!_isPolar)
         {
+            // get resolution and fov info from yaml
+            float h = node["image_h"] ? node["image_h"].as<float>() : 0.f;
+            float w = node["image_w"] ? node["image_w"].as<float>() : 0.f;
+            _pix_per_bin = std::ceil(h / _bin_h) * std::ceil(w / _bin_w);
+
             if (!node["hfov"])
                 throw std::runtime_error("yaml missing hfov");
             _hfov = node["hfov"].as<float>() * M_PI / 180 / 2;
@@ -62,18 +61,19 @@ Sensor::Sensor(const YAML::Node& node,
             _el_min = -_vfov / 2;
             _el_max = _vfov / 2;
 
-            _pix_per_bin = std::ceil((float)_h / _bin_h) * std::ceil((float)_w / _bin_w);
-
-            float scale_x = (float)_bin_h / _h;
-            float scale_y = (float)_bin_w / _w;
-            _fx = _w / 2.0f / std::tan(_hfov) * scale_x;
-            _fy = _h / 2.0f / std::tan(_vfov) * scale_y;
-            _cx = _w / 2.0f * scale_x;
-            _cy = _h / 2.0f * scale_y;
+            float scale_x = (float)_bin_h / h;
+            float scale_y = (float)_bin_w / w;
+            _fx = w / 2.0f / std::tan(_hfov) * scale_x;
+            _fy = h / 2.0f / std::tan(_vfov) * scale_y;
+            _cx = w / 2.0f * scale_x;
+            _cy = h / 2.0f * scale_y;
         }
         // get angular range for polar projection
         else
         {
+            float nb_pts = node["nb_pts"] ? node["nb_pts"].as<float>() : 0.f;
+            _pix_per_bin = std::ceil(nb_pts / _bin_h / _bin_w);
+
             if (!node["azimuth_range"] || !node["azimuth_range"].IsSequence() || !(node["azimuth_range"].size() == 2))
                 throw std::runtime_error("yaml missing azimuth_range");
             if (!node["elevation_range"] || !node["elevation_range"].IsSequence() || !(node["elevation_range"].size() == 2))
@@ -113,13 +113,13 @@ void Sensor::camInfoCb(const sensor_msgs::CameraInfoConstPtr& msg)
 {
     if (!_proj_init)
     {
-        _h = msg->height;
-        _w = msg->width;
+        float h = (float)msg->height;
+        float w = (float)msg->width;
 
-        _pix_per_bin = std::ceil((float)_h / _bin_h) * std::ceil((float)_w / _bin_w);
+        _pix_per_bin = std::ceil(h / _bin_h) * std::ceil(w / _bin_w);
 
-        float scale_x = (float)_bin_h / _h;
-        float scale_y = (float)_bin_w / _w;
+        float scale_x = (float)_bin_h / h;
+        float scale_y = (float)_bin_w / w;
         _fx = msg->K[0] * scale_x;
         _fy = msg->K[4] * scale_y;
         _cx = msg->K[2] * scale_x;
