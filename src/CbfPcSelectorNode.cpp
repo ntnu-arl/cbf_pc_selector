@@ -92,7 +92,7 @@ CbfPcSelectorNode::CbfPcSelectorNode()
         "x", 1, sensor_msgs::PointField::FLOAT32,
         "y", 1, sensor_msgs::PointField::FLOAT32,
         "z", 1, sensor_msgs::PointField::FLOAT32,
-        "intensity", 1, sensor_msgs::PointField::FLOAT32
+        "range", 1, sensor_msgs::PointField::FLOAT32
     );
     size_t nb_pts = 0;
     for (const auto& sensor : _sensors)
@@ -124,7 +124,6 @@ bool CbfPcSelectorNode::allSensorsAreInit()
 void CbfPcSelectorNode::onSensorCb()
 {
     // TODO lock mutex?
-
     // populate pc message
     _out_msg.header.stamp = ros::Time::now();
     sensor_msgs::PointCloud2Modifier pc_mod(_out_msg);

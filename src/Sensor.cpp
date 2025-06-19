@@ -103,7 +103,7 @@ void Sensor::allocatePointsBins()
         "x", 1, sensor_msgs::PointField::FLOAT32,
         "y", 1, sensor_msgs::PointField::FLOAT32,
         "z", 1, sensor_msgs::PointField::FLOAT32,
-        "intensity", 1, sensor_msgs::PointField::FLOAT32
+        "range", 1, sensor_msgs::PointField::FLOAT32
     );
     pc_mod.reserve(_bin_h * _bin_w);
     pc_mod.resize(0);
@@ -134,6 +134,7 @@ void Sensor::camInfoCb(const sensor_msgs::CameraInfoConstPtr& msg)
 
 void Sensor::imgCb(const sensor_msgs::ImageConstPtr& msg)
 {
+    auto start = std::chrono::high_resolution_clock::now();
     // skip if cameraInfo not received
     if (!_proj_init)
     {
@@ -245,9 +246,16 @@ void Sensor::binsToPoints()
     sensor_msgs::PointCloud2Iterator<float> iter_x(_points, "x");
     sensor_msgs::PointCloud2Iterator<float> iter_y(_points, "y");
     sensor_msgs::PointCloud2Iterator<float> iter_z(_points, "z");
-    sensor_msgs::PointCloud2Iterator<float> iter_r(_points, "intensity");
+    sensor_msgs::PointCloud2Iterator<float> iter_r(_points, "range");
 
+    sensor_msgs::PointCloud2Modifier pc_mod(_points);
     size_t nb_points = 0;
+    for (size_t u = 0; u < _bin_h; ++u)
+        for (size_t v = 0; v < _bin_w; ++v)
+            if (_bins[u][v].size() > _min_per_bin)
+                ++nb_points;
+    pc_mod.resize(nb_points);
+
     for (size_t u = 0; u < _bin_h; ++u)
     {
         for (size_t v = 0; v < _bin_w; ++v)
@@ -263,13 +271,13 @@ void Sensor::binsToPoints()
                 {
                     float range = _bins[u][v][idx];
                     float azimuth = _az_min + ((float)v + 0.5f) * (_az_max - _az_min) / (_bin_w - 1);
-                    float elevation = _el_min + ((float)u + 0.5f) * (_el_max - _el_min) / (_bin_h - 1);
+                    float elevation = _el_min + ((f loat)u + 0.5f) * (_el_max - _el_min) / (_bin_h - 1);
 
                     *iter_x = range * std::cos(elevation) * std::cos(azimuth);
                     *iter_y = range * std::cos(elevation) * std::sin(azimuth);
                     *iter_z = range * std::sin(elevation);
                     *iter_r = range;
-                }
+        		}
                 else
                 {
                     *iter_z = _bins[u][v][idx];
@@ -288,8 +296,6 @@ void Sensor::binsToPoints()
             _bins[u][v].clear();
         }
     }
-    sensor_msgs::PointCloud2Modifier pc_mod(_points);
-    pc_mod.resize(nb_points);
 }
 
 

@@ -3,17 +3,17 @@ sensors:
     -  # flexx2
         topic: /pmd_royale_ros_camera_node/depth_image_0
         frame: pmd_royale_ros_camera_node_optical_frame
-        bins_w: 11
-        bins_h: 9
-        percentile: 10  # [%]
+        bins_w: 8
+        bins_h: 6
+        percentile: 20  # [%]
         min_ratio_per_bin: 0  # [0-1]
         mm_resolution: 1000  # mm resolution in 1 pixel unit
         min_range: 0.1  # [m]
         max_range: 10  # [m]
         is_pointcloud: false
         is_polar: false
-        cam_info_topic: /pmd_royale_ros_camera_node/camera_info  # doesnt get published for some reason
-        # input info (instead of camera info)
+        cam_info_topic: /pmd_royale_ros_camera_node/camera_info
+        # input info (not used since using camera info)
         # hfov: 56  # [deg]
         # vfov: 44  # [deg]
         # image_w: 224  # -- used only for preallocating bin size
@@ -21,12 +21,11 @@ sensors:
     -  # airy
         topic: /mimosa_node/lidar/manager/points_full_res
         frame: mimosa_lidar
-        bins_w: 32
-        bins_h: 16
-        percentile: 10  # [%]
+        bins_w: 20
+        bins_h: 10
+        percentile: 20  # [%]
         min_ratio_per_bin: 0  # [0-1]
-        mm_resolution: 1000  # mm resolution in 1 pixel unit
-        min_range: 0.6  # [m]
+        min_range: 0.4  # [m]
         max_range: 10  # [m]
         is_pointcloud: true
         is_polar: true
