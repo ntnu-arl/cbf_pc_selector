@@ -19,7 +19,7 @@ sensors:
         # image_w: 224  # -- used only for preallocating bin size
         # image_h: 172  # -- used only for preallocating bin size
     -  # airy
-        topic: TODO
+        topic: /mimosa_node/lidar/manager/points_full_res
         frame: mimosa_lidar
         bins_w: 32
         bins_h: 16

@@ -1,8 +1,6 @@
 <?xml version="1.0"?>
 <launch>
     <node pkg="cbf_pc_selector" type="cbf_pc_selector_node" name="cbf_pc_selector" output="screen">
-        <rosparam file="$(find cbf_pc_selector)/config/sim.yaml" command="load"/>
-        <remap from="/cbf_pc_selector/camera_info" to="/rmf_owl/cam/camera_info"/>
-        <remap from="/cbf_pc_selector/input_image" to="/rmf_owl/cam/depth"/>
+        <param name="config_file" value="$(find cbf_pc_selector)/config/sim.yaml"/>
     </node>
 </launch>
