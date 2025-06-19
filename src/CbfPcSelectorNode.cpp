@@ -88,13 +88,17 @@ CbfPcSelectorNode::CbfPcSelectorNode()
     // init output pc
     _out_msg.header.frame_id = _frame_body;
     sensor_msgs::PointCloud2Modifier pc_mod(_out_msg);
-    pc_mod.setPointCloud2Fields(3,
+    pc_mod.setPointCloud2Fields(4,
         "x", 1, sensor_msgs::PointField::FLOAT32,
         "y", 1, sensor_msgs::PointField::FLOAT32,
-        "z", 1, sensor_msgs::PointField::FLOAT32
+        "z", 1, sensor_msgs::PointField::FLOAT32,
+        "intensity", 1, sensor_msgs::PointField::FLOAT32
     );
-    pc_mod.reserve(10000);  // TODO make this non arbitrary
-    _out_msg.height = 1;
+    size_t nb_pts = 0;
+    for (const auto& sensor : _sensors)
+        nb_pts += sensor->nbBins();
+    pc_mod.reserve(nb_pts);
+    pc_mod.resize(0);
 
 
     // subscribe to all image topics
@@ -124,16 +128,13 @@ void CbfPcSelectorNode::onSensorCb()
     // populate pc message
     _out_msg.header.stamp = ros::Time::now();
     sensor_msgs::PointCloud2Modifier pc_mod(_out_msg);
-    sensor_msgs::PointCloud2Iterator<float> iter_x(_out_msg, "x");
-    sensor_msgs::PointCloud2Iterator<float> iter_y(_out_msg, "y");
-    sensor_msgs::PointCloud2Iterator<float> iter_z(_out_msg, "z");
 
-    _out_msg.data.resize(0);
-    _out_msg.width = 0;
-    _out_msg.row_step = 0;
-
+    pc_mod.resize(0);
     for (const auto& sensor : _sensors)
     {
+        if (!sensor->hasPoints())
+            continue;
+
         sensor_msgs::PointCloud2 pc_k = sensor->pcInBody();
 
         _out_msg.data.insert(_out_msg.data.end(), pc_k.data.begin(), pc_k.data.end());

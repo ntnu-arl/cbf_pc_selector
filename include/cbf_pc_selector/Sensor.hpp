@@ -23,6 +23,8 @@ public:
     void imgCb(const sensor_msgs::ImageConstPtr& msg);
     void pcCb(const sensor_msgs::PointCloud2ConstPtr& msg);
 
+    bool hasPoints() { return (bool)_points.width; };
+    size_t nbBins() { return _bin_h * _bin_w; };
     sensor_msgs::PointCloud2 pcInBody();
 
     // TODO make the field below accessible via getters?

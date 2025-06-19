@@ -99,10 +99,11 @@ void Sensor::allocatePointsBins()
 
     // allocate pc2
     sensor_msgs::PointCloud2Modifier pc_mod(_points);
-    pc_mod.setPointCloud2Fields(3,
+    pc_mod.setPointCloud2Fields(4,
         "x", 1, sensor_msgs::PointField::FLOAT32,
         "y", 1, sensor_msgs::PointField::FLOAT32,
-        "z", 1, sensor_msgs::PointField::FLOAT32
+        "z", 1, sensor_msgs::PointField::FLOAT32,
+        "intensity", 1, sensor_msgs::PointField::FLOAT32
     );
     pc_mod.reserve(_bin_h * _bin_w);
     pc_mod.resize(0);
@@ -244,6 +245,7 @@ void Sensor::binsToPoints()
     sensor_msgs::PointCloud2Iterator<float> iter_x(_points, "x");
     sensor_msgs::PointCloud2Iterator<float> iter_y(_points, "y");
     sensor_msgs::PointCloud2Iterator<float> iter_z(_points, "z");
+    sensor_msgs::PointCloud2Iterator<float> iter_r(_points, "intensity");
 
     size_t nb_points = 0;
     for (size_t u = 0; u < _bin_h; ++u)
@@ -263,18 +265,24 @@ void Sensor::binsToPoints()
                     float azimuth = _az_min + ((float)v + 0.5f) * (_az_max - _az_min) / (_bin_w - 1);
                     float elevation = _el_min + ((float)u + 0.5f) * (_el_max - _el_min) / (_bin_h - 1);
 
-                    *iter_x = range * cos(elevation) * cos(azimuth);
-                    *iter_y = range * cos(elevation) * sin(azimuth);
-                    *iter_z = range * sin(elevation);
+                    *iter_x = range * std::cos(elevation) * std::cos(azimuth);
+                    *iter_y = range * std::cos(elevation) * std::sin(azimuth);
+                    *iter_z = range * std::sin(elevation);
+                    *iter_r = range;
                 }
                 else
                 {
                     *iter_z = _bins[u][v][idx];
                     *iter_x = (v + 0.5 - _cx) / _fx * _bins[u][v][idx];
                     *iter_y = (u + 0.5 - _cy) / _fy * _bins[u][v][idx];
+
+                    float x = *iter_x;
+                    float y = *iter_y;
+                    float z = *iter_z;
+                    *iter_r = std::sqrt(x * x + y * y + z * z);
                 }
 
-                ++iter_x; ++iter_y; ++iter_z;
+                ++iter_x; ++iter_y; ++iter_z, ++iter_r;
                 ++nb_points;
             }
             _bins[u][v].clear();
