@@ -271,7 +271,7 @@ void Sensor::binsToPoints()
                 {
                     float range = _bins[u][v][idx];
                     float azimuth = _az_min + ((float)v + 0.5f) * (_az_max - _az_min) / (_bin_w - 1);
-                    float elevation = _el_min + ((f loat)u + 0.5f) * (_el_max - _el_min) / (_bin_h - 1);
+                    float elevation = _el_min + ((float)u + 0.5f) * (_el_max - _el_min) / (_bin_h - 1);
 
                     *iter_x = range * std::cos(elevation) * std::cos(azimuth);
                     *iter_y = range * std::cos(elevation) * std::sin(azimuth);
