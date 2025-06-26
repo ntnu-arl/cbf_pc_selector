@@ -28,8 +28,7 @@ Sensor::Sensor(const YAML::Node& node,
     _bin_w = node["bins_w"].as<int>();
 
     _percentile = node["percentile"] ? node["percentile"].as<float>() / 100 : 0;
-    float min_ratio = node["min_ratio_per_bin"] ? node["min_ratio_per_bin"].as<float>() : 0.f;
-    _min_per_bin = (int) ceil(min_ratio * _bin_h * _bin_w);
+    _min_per_bin = node["min_per_bin"] ? node["min_per_bin"].as<int>() : 0;
 
     if (node["cam_info_topic"])
     {

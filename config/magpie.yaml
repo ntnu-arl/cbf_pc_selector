@@ -6,7 +6,7 @@ sensors:
         bins_w: 8
         bins_h: 6
         percentile: 20  # [%]
-        min_ratio_per_bin: 0  # [0-1]
+        min_per_bin: 0
         mm_resolution: 1000  # mm resolution in 1 pixel unit
         min_range: 0.1  # [m]
         max_range: 10  # [m]
@@ -24,7 +24,7 @@ sensors:
         bins_w: 20
         bins_h: 10
         percentile: 20  # [%]
-        min_ratio_per_bin: 0  # [0-1]
+        min_per_bin: 20
         min_range: 0.4  # [m]
         max_range: 10  # [m]
         is_pointcloud: true

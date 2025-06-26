@@ -6,7 +6,7 @@ sensors:
         bins_w: 16
         bins_h: 9
         percentile: 10  # [%]
-        min_ratio_per_bin: 0  # [0-1]
+        min_per_bin: 0
         mm_resolution: 1  # mm resolution in 1 pixel unit
         min_range: 0.1  # [m]
         max_range: 10  # [m]
