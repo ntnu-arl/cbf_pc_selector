@@ -28,7 +28,6 @@ sensors:
         min_range: 0.4  # [m]
         max_range: 10  # [m]
         is_pointcloud: true
-        is_polar: true
         # input info (since no cam_info is provided for pointcloud inputs)
         azimuth_range: [-180, 180]  # range of azimuth covered by sensor [deg]
         elevation_range: [0, 90]  # range of elevation covered by sensor [deg]
