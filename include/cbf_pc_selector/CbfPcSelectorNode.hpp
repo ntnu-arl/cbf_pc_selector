@@ -9,6 +9,7 @@
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_sensor_msgs/tf2_sensor_msgs.h>
+#include <std_srvs/SetBool.h>
 
 #include <vector>
 #include <memory>
@@ -24,6 +25,7 @@ public:
 private:
     bool allSensorsAreInit();
     void onSensorCb();
+    bool enableSrvCb(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res);
 
     sensor_msgs::PointCloud2 _out_msg;
 
@@ -38,9 +40,12 @@ private:
     std::string _frame_mavros;
     bool _publish_mavros = false;
     geometry_msgs::TransformStamped _T_body_mavros;
+    bool _enabled = false;
 
     ros::Publisher _pc_pub;
     ros::Publisher _mavros_pub;
+
+    ros::ServiceServer _enable_srv;
 };
 
 

@@ -84,6 +84,9 @@ CbfPcSelectorNode::CbfPcSelectorNode()
     _pc_pub = _nh.advertise<sensor_msgs::PointCloud2>("/cbf_pc_selector/output_pc", 1);
     if (_publish_mavros)
         _mavros_pub = _nh.advertise<sensor_msgs::PointCloud2>("/cbf_pc_selector/output_mavros", 1);
+    
+    // service
+    _enable_srv = _nh.advertiseService("/cbf_pc_selector/enable", &CbfPcSelectorNode::enableSrvCb, this);
 
     // init output pc
     _out_msg.header.frame_id = _frame_body;
@@ -123,6 +126,8 @@ bool CbfPcSelectorNode::allSensorsAreInit()
 
 void CbfPcSelectorNode::onSensorCb()
 {
+    if(!_enabled)
+        return;
     // TODO lock mutex?
     // populate pc message
     _out_msg.header.stamp = ros::Time::now();
@@ -151,6 +156,14 @@ void CbfPcSelectorNode::onSensorCb()
         pc_msg_mavros.header.stamp = _out_msg.header.stamp;
         _mavros_pub.publish(pc_msg_mavros);
     }
+}
+
+bool CbfPcSelectorNode::enableSrvCb(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res)
+{
+    _enabled = req.data;
+    res.success = true;
+    res.message = _enabled ? "cbf_pc_selector enabled" : "cbf_pc_selector disabled";
+    return true;
 }
 
 
