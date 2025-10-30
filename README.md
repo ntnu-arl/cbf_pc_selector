@@ -16,7 +16,7 @@ The sensors characteristics are described in a config file, detailled in [hereaf
 
 ### Installation
 
-Simply clone the repo in the `src` folder of your workspace and install with Catkin.
+Clone the repo in the `src` folder of your workspace and install it using Colcon.
 
 ## Config
 
@@ -28,7 +28,7 @@ The `yaml` config file for a set of sensors is structured as:
 ```yaml
 frame_body: body_frame  # TF frame for body
 sensors:
-    -  # depth image
+    0:  # depth image
         is_pointcloud: false  # set to false for depth image
         is_polar: false  # set to false for depth image
         topic: /camera_1/depth  # ROS topic for input data
@@ -47,7 +47,7 @@ sensors:
         vfov: 44  # halved vertical FoV [deg]
         image_w: 224  # input image size (width) -- used only for preallocating bin size
         image_h: 172  # input image size (height)-- used only for preallocating bin size
-    -  # range image
+    1:  # range image
         is_pointcloud: false  # set to false for depth image
         is_polar: true  # set to true for depth image
         topic: /camera_2/range  # ROS topic for input data
@@ -62,7 +62,7 @@ sensors:
         azimuth_range: [-180, 180]  # range of azimuth covered by sensor [deg]
         elevation_range: [-45, 45]  # range of elevation covered by sensor [deg]
         nb_pts: 65536  # upper bound for number of lidar points -- used only for preallocating bin size
-    -  # point cloud
+    2:  # point cloud
         is_pointcloud: true  # set to true for point cloud
         topic: /lidar/points  # ROS topic for input data
         frame: lidar_frame  # TF frame for input data
