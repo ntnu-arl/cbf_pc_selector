@@ -9,12 +9,12 @@ def generate_launch_description():
             package='cbf_pc_selector',
             executable='pc_selector_node',
             name='cbf_pc_selector',
-            parameters=[{
-                'config': os.path.join(
+            parameters=[
+                os.path.join(
                     get_package_share_directory('cbf_pc_selector'),
                     'config', 'sim.yaml'
                 ),
-            }],
+            ],
             output='screen'
         )
     ])

@@ -1,20 +1,22 @@
-frame_body: base_link
-sensors:
-    -  # D455
-        topic: /d455/depth/image_rect_raw
-        frame: d455_depth_optical_frame
-        bins_w: 16
-        bins_h: 9
-        percentile: 10  # [%]
-        min_per_bin: 0
-        mm_resolution: 1  # mm resolution in 1 pixel unit
-        min_range: 0.1  # [m]
-        max_range: 10  # [m]
-        is_pointcloud: false
-        is_polar: false
-        cam_info_topic: /d455/depth/camera_info
-        # input info (not used since camera_info is used)
-        # hfov: 87  # [deg]
-        # vfov: 58  # [deg]
-        # image_w: 512
-        # image_h: 128
+cbf_pc_selector:
+    ros__parameters:
+        frame_body: base_link
+        sensors:
+            0:  # D455
+                topic: /d455/depth/image_rect_raw
+                frame: d455_depth_optical_frame
+                bins_w: 16
+                bins_h: 9
+                percentile: 10  # [%]
+                min_per_bin: 0
+                mm_resolution: 1  # mm resolution in 1 pixel unit
+                min_range: 0.1  # [m]
+                max_range: 10  # [m]
+                is_pointcloud: false
+                is_polar: false
+                cam_info_topic: /d455/depth/camera_info
+                # input info (not used since camera_info is used)
+                # hfov: 87  # [deg]
+                # vfov: 58  # [deg]
+                # image_w: 512
+                # image_h: 128

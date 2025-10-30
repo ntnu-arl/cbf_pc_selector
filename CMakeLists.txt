@@ -10,7 +10,6 @@ find_package(sensor_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_sensor_msgs REQUIRED)
-find_package(yaml-cpp REQUIRED)
 find_package(Eigen3 REQUIRED)
 
 add_executable(pc_selector_node
@@ -21,10 +20,6 @@ add_executable(pc_selector_node
 target_include_directories(pc_selector_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
-)
-
-target_link_libraries(pc_selector_node
-    yaml-cpp
 )
 
 ament_target_dependencies(pc_selector_node

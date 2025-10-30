@@ -1,34 +1,36 @@
-frame_body: mimosa_body
-sensors:
-    -  # flexx2
-        topic: /pmd_royale_ros_camera_node/depth_image_0
-        frame: pmd_royale_ros_camera_node_optical_frame
-        bins_w: 8
-        bins_h: 6
-        percentile: 20  # [%]
-        min_per_bin: 0
-        mm_resolution: 1000  # mm resolution in 1 pixel unit
-        min_range: 0.1  # [m]
-        max_range: 10  # [m]
-        is_pointcloud: false
-        is_polar: false
-        cam_info_topic: /pmd_royale_ros_camera_node/camera_info
-        # input info (not used since using camera info)
-        # hfov: 56  # [deg]
-        # vfov: 44  # [deg]
-        # image_w: 224  # -- used only for preallocating bin size
-        # image_h: 172  # -- used only for preallocating bin size
-    -  # airy
-        topic: /mimosa_node/lidar/manager/points_full_res
-        frame: mimosa_lidar
-        bins_w: 20
-        bins_h: 10
-        percentile: 20  # [%]
-        min_per_bin: 20
-        min_range: 0.4  # [m]
-        max_range: 10  # [m]
-        is_pointcloud: true
-        # input info (since no cam_info is provided for pointcloud inputs)
-        azimuth_range: [-180, 180]  # range of azimuth covered by sensor [deg]
-        elevation_range: [0, 90]  # range of elevation covered by sensor [deg]
-        nb_pts: 10000  # probably wrong -- used only for preallocating bin size
+cbf_pc_selector:
+    ros__parameters:
+        frame_body: mimosa_body
+        sensors:
+            0:  # flexx2
+                topic: /pmd_royale_ros_camera_node/depth_image_0
+                frame: pmd_royale_ros_camera_node_optical_frame
+                bins_w: 8
+                bins_h: 6
+                percentile: 20  # [%]
+                min_per_bin: 0
+                mm_resolution: 1000  # mm resolution in 1 pixel unit
+                min_range: 0.1  # [m]
+                max_range: 10  # [m]
+                is_pointcloud: false
+                is_polar: false
+                cam_info_topic: /pmd_royale_ros_camera_node/camera_info
+                # input info (not used since using camera info)
+                # hfov: 56  # [deg]
+                # vfov: 44  # [deg]
+                # image_w: 224  # -- used only for preallocating bin size
+                # image_h: 172  # -- used only for preallocating bin size
+            1:  # airy
+                topic: /mimosa_node/lidar/manager/points_full_res
+                frame: mimosa_lidar
+                bins_w: 20
+                bins_h: 10
+                percentile: 20  # [%]
+                min_per_bin: 20
+                min_range: 0.4  # [m]
+                max_range: 10  # [m]
+                is_pointcloud: true
+                # input info (since no cam_info is provided for pointcloud inputs)
+                azimuth_range: [-180, 180]  # range of azimuth covered by sensor [deg]
+                elevation_range: [0, 90]  # range of elevation covered by sensor [deg]
+                nb_pts: 10000  # probably wrong -- used only for preallocating bin size

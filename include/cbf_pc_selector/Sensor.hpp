@@ -13,32 +13,48 @@
 
 #include <string>
 #include <vector>
-#include <yaml-cpp/yaml.h>
 #include <functional>
+
+
+struct SensorConfig {
+    // required
+    std::string topic;  // sensor data topic
+    std::string frame;  // ROS frame of sensor data
+    int bins_w = 0, bins_h = 0;  // nb of bins of downscaled image [pixels]
+    float min_range = 0.f, max_range = 0.f;  // image distance clipping [m]
+
+    // optional / defaults mirror current code
+    bool is_pointcloud = false;
+    bool is_polar = false;
+    int mm_resolution = 1;  // mm per pixel unit
+    int min_per_bin = 0;
+    float percentile = 0.f;  // [0-1]
+
+    // image cfg
+    std::string cam_info_topic = "";  // if not empty -> use camInfo
+    int image_w = 0, image_h = 0;
+    float hfov = 0.f, vfov = 0.f; // halved FoV [rad]
+    // pointcloud cfg
+    int nb_pts = 0;
+    std::array<float,2> azimuth_range{0.0, 0.0}, elevation_range{0.0, 0.0}; // min and max azimuth and elevation [rad]
+};
 
 
 class Sensor
 {
 public:
-    Sensor(const YAML::Node& node, std::function<void()> cb);
+    Sensor(const SensorConfig& cfg, std::function<void()> cb);
 
     void camInfoCb(const sensor_msgs::msg::CameraInfo::ConstSharedPtr& msg);
     void imgCb(const sensor_msgs::msg::Image::ConstSharedPtr& msg);
     void pcCb(const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg);
 
     bool hasPoints() { return (bool)_points.width; };
-    size_t nbBins() { return _bin_h * _bin_w; };
+    int nbBins() { return _cfg.bins_h * _cfg.bins_w; };
     sensor_msgs::msg::PointCloud2 pcInBody();
 
-    // TODO make the field below accessible via getters?
-    std::string _topic;  // sensor data topic
-    std::string _frame;  // ROS frame of sensor data
+    SensorConfig _cfg;
 
-    std::string _camInfo_topic;  // sensor cameraInfo topic
-    bool _use_camInfo;  // use cameraInfo topic or autocompute intrinsics from resolution and fov
-
-    bool _isPointcloud;  // input is pointcloud instead of image (not used ATM)
-    bool _isPolar;  // polar or pinhole projection
     bool _proj_init = false;
     bool _tf_init = false;
 
@@ -55,20 +71,10 @@ private:
 
     std::function<void()> _notify_node_cb;  // callback to notify node after processing message
 
-    int _bin_h;  // nb of height binning of downscaled image
-    int _bin_w;  // nb of width binning of downscaled image [pixels]
     float _pix_to_meters;  // convertion ratio from pixel values to meters
-
-    float _percentile;  // percentile filtering for each bin
-    int _min_per_bin;  // minimum nb of valid pixels for bins to be considered
     int _pix_per_bin;  // nb of pixels per bin for reserve
-
-    float _hfov, _vfov;  // halved horizontal and vertical FoV [rad]
-    float _az_min, _az_max, _el_min, _el_max;  // min and max azimuth and elevation[rad]
-
     float _fy, _fx, _cx, _cy;  // intrinsics for pinhole model projection
-
-    float _min_range, _max_range;  // image distance clipping
+    float _az_min, _az_max, _el_min, _el_max;  // min and max azimuth and elevation [rad]
 };
 
 #endif // CBFPCSEL_SENSOR

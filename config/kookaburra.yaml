@@ -1,18 +1,20 @@
-frame_body: os_sensor
-sensors:
-    -  # Ouster
-        topic: /os_cloud_node/range_image
-        frame: os_sensor
-        bins_w: 32
-        bins_h: 8
-        percentile: 10  # [%]
-        min_per_bin: 0
-        mm_resolution: 4  # mm resolution in 1 pixel unit
-        min_range: 0.6  # [m]
-        max_range: 10  # [m]
-        is_pointcloud: false
-        is_polar: true
-        # input info (since no cam_info is provided for the range image)
-        azimuth_range: [-180, 180]  # range of azimuth covered by sensor [deg]
-        elevation_range: [-45, 45]  # range of azimuth covered by sensor [deg]
-        nb_pts: 65536  # -- used only for preallocating bin size
+cbf_pc_selector:
+    ros__parameters:
+        frame_body: os_sensor
+        sensors:
+            0:  # Ouster
+                topic: /os_cloud_node/range_image
+                frame: os_sensor
+                bins_w: 32
+                bins_h: 8
+                percentile: 10  # [%]
+                min_per_bin: 0
+                mm_resolution: 4  # mm resolution in 1 pixel unit
+                min_range: 0.6  # [m]
+                max_range: 10  # [m]
+                is_pointcloud: false
+                is_polar: true
+                # input info (since no cam_info is provided for the range image)
+                azimuth_range: [-180, 180]  # range of azimuth covered by sensor [deg]
+                elevation_range: [-45, 45]  # range of azimuth covered by sensor [deg]
+                nb_pts: 65536  # -- used only for preallocating bin size

@@ -4,7 +4,18 @@
 #include "cbf_pc_selector/Sensor.hpp"
 
 #include <string>
-#include <yaml-cpp/yaml.h>
+#include <cmath>
+
+
+static float deg2rad(int deg)
+{
+    return static_cast<float>(deg) * M_PI / 180;
+}
+
+static float deg2rad(double deg)
+{
+    return static_cast<float>(deg) * M_PI / 180;
+}
 
 
 CbfPcSelectorNode::CbfPcSelectorNode(const rclcpp::NodeOptions& options)
@@ -14,25 +25,94 @@ CbfPcSelectorNode::CbfPcSelectorNode(const rclcpp::NodeOptions& options)
     _tf_listener = std::make_shared<tf2_ros::TransformListener>(_tf_buffer, this, true);
 
     // get yaml cfg
-    this->declare_parameter<std::string>("config", "");
-    std::string _yaml_path = this->get_parameter("config").as_string();
+    this->get_parameter("frame_body", _frame_body);
+    this->get_parameter("frame_mavros", _frame_mavros);
+    _publish_mavros = !_frame_mavros.empty();
 
-    RCLCPP_INFO(this->get_logger(), "loaded config: %s", _yaml_path.c_str());
+    // init sensor configs
+    std::map<int, SensorConfig> cfgs;
 
-    YAML::Node config = YAML::LoadFile(_yaml_path);
+    const std::string prefix = "sensors";
+    auto sensor_list = this->list_parameters({prefix}, 5);
 
-    if (!config["sensors"] || !config["frame_body"]) {
-        RCLCPP_ERROR(this->get_logger(), "invalid yaml");
-        return;
-    }
-
-    for (const auto& node : config["sensors"])
+    for (const auto& full_param_path : sensor_list.names)
     {
-        auto sensor = std::make_shared<Sensor>(node, std::bind(&CbfPcSelectorNode::onSensorCb, this));
-        _sensors.push_back(sensor);
-    }
+        rclcpp::Parameter p;
+        if (!this->get_parameter(full_param_path, p)) continue;
 
-    _frame_body = config["frame_body"].as<std::string>();
+        // full_param_path: "sensors.0.topic" etc
+        const std::string head = prefix + ".";
+        if (full_param_path.rfind(head, 0) != 0) continue;
+
+        // suffix: "0.topic"
+        const std::string suffix = full_param_path.substr(head.size());
+        const auto dot = suffix.find('.');
+        if (dot == std::string::npos) continue;
+
+        int idx = std::stoi(suffix.substr(0, dot));
+        auto& cfg = cfgs[idx];
+
+        const std::string key = suffix.substr(dot + 1);
+
+        if (key == "topic") cfg.topic = p.as_string();
+        else if (key == "frame") cfg.frame = p.as_string();
+        else if (key == "bins_w") cfg.bins_w = static_cast<int>(p.as_int());
+        else if (key == "bins_h") cfg.bins_h = static_cast<int>(p.as_int());
+        else if (key == "percentile") cfg.percentile = static_cast<float>(p.as_int()/100.f);
+        else if (key == "min_per_bin") cfg.min_per_bin = static_cast<int>(p.as_int());
+        else if (key == "mm_resolution") cfg.mm_resolution = static_cast<int>(p.as_int());
+        else if (key == "min_range") cfg.min_range = static_cast<float>(p.as_double());
+        else if (key == "max_range") cfg.max_range = static_cast<float>(p.as_double());
+        else if (key == "is_pointcloud") cfg.is_pointcloud = p.as_bool();
+        else if (key == "is_polar") cfg.is_polar = p.as_bool();
+        else if (key == "cam_info_topic") cfg.cam_info_topic = p.as_string();
+        else if (key == "image_w") cfg.image_w = static_cast<int>(p.as_int());
+        else if (key == "image_h") cfg.image_h = static_cast<int>(p.as_int());
+        else if (key == "hfov") cfg.hfov = deg2rad(p.as_double()) / 2;
+        else if (key == "vfov") cfg.vfov = deg2rad(p.as_double()) / 2;
+        else if (key == "nb_pts") cfg.nb_pts = static_cast<int>(p.as_int());
+        else if (key == "azimuth_range") {
+            auto arr = p.as_double_array();
+            if (arr.size() >= 2)
+                cfg.azimuth_range = {deg2rad(arr[0]), deg2rad(arr[1])};
+        }
+        else if (key == "elevation_range") {
+            auto arr = p.as_double_array();
+            if (arr.size() >= 2)
+                cfg.elevation_range = {deg2rad(arr[0]), deg2rad(arr[1])};
+        }
+    }
+    for (auto &kv : cfgs)
+    {
+        _sensors.push_back(std::make_shared<Sensor>(
+            kv.second,
+            std::bind(&CbfPcSelectorNode::onSensorCb, this)
+        ));
+        // RCLCPP_INFO(get_logger(), "%s", _sensors.back()->_cfg.topic.c_str());
+        // RCLCPP_INFO(get_logger(), "%s", _sensors.back()->_cfg.frame.c_str());
+        // RCLCPP_INFO(get_logger(), "%i", _sensors.back()->_cfg.bins_w);
+        // RCLCPP_INFO(get_logger(), "%i", _sensors.back()->_cfg.bins_h);
+        // RCLCPP_INFO(get_logger(), "%f", _sensors.back()->_cfg.min_range);
+        // RCLCPP_INFO(get_logger(), "%f", _sensors.back()->_cfg.max_range);
+        // RCLCPP_INFO(get_logger(), "%i", _sensors.back()->_cfg.is_pointcloud);
+        // RCLCPP_INFO(get_logger(), "%i", _sensors.back()->_cfg.is_polar);
+        // RCLCPP_INFO(get_logger(), "%i", _sensors.back()->_cfg.mm_resolution);
+        // RCLCPP_INFO(get_logger(), "%i", _sensors.back()->_cfg.min_per_bin);
+        // RCLCPP_INFO(get_logger(), "%f", _sensors.back()->_cfg.percentile);
+        // RCLCPP_INFO(get_logger(), "%s", _sensors.back()->_cfg.cam_info_topic.c_str());
+        // RCLCPP_INFO(get_logger(), "%i", _sensors.back()->_cfg.image_w);
+        // RCLCPP_INFO(get_logger(), "%i", _sensors.back()->_cfg.image_h);
+        // RCLCPP_INFO(get_logger(), "%f", _sensors.back()->_cfg.hfov);
+        // RCLCPP_INFO(get_logger(), "%f", _sensors.back()->_cfg.vfov);
+        // RCLCPP_INFO(get_logger(), "%i", _sensors.back()->_cfg.nb_pts);
+        // RCLCPP_INFO(get_logger(), "%f", _sensors.back()->_cfg.azimuth_range[0]);
+        // RCLCPP_INFO(get_logger(), "%f", _sensors.back()->_cfg.azimuth_range[1]);
+        // RCLCPP_INFO(get_logger(), "%f", _sensors.back()->_cfg.elevation_range[0]);
+        // RCLCPP_INFO(get_logger(), "%f", _sensors.back()->_cfg.elevation_range[1]);
+        
+    }
+    RCLCPP_INFO(get_logger(), "logged sensor config successfully");
+
     rclcpp::Rate rate{1};
     rate.sleep();
     while (!allSensorsAreInit())
@@ -40,18 +120,18 @@ CbfPcSelectorNode::CbfPcSelectorNode(const rclcpp::NodeOptions& options)
         for (auto& sensor : _sensors)
         {
             // register camInfo callback if necessary
-            if (sensor->_use_camInfo)
+            if (!sensor->_cfg.cam_info_topic.empty())
             {
                 sensor->_camInfoSub = this->create_subscription<sensor_msgs::msg::CameraInfo>(
-                    sensor->_camInfo_topic,
+                    sensor->_cfg.cam_info_topic,
                     rclcpp::SensorDataQoS(),
                     std::bind(&Sensor::camInfoCb, sensor.get(), std::placeholders::_1)
                 );
-                sensor->_use_camInfo = false;  // prevent re-registration
                 RCLCPP_INFO(this->get_logger(),
                     "callback registered to topic %s",
-                    sensor->_camInfo_topic.c_str()
+                    sensor->_cfg.cam_info_topic.c_str()
                 );
+                sensor->_cfg.cam_info_topic = "";  // hack to prevent re-registration
             }
 
             // lookup tf
@@ -61,13 +141,13 @@ CbfPcSelectorNode::CbfPcSelectorNode(const rclcpp::NodeOptions& options)
                 {
                     sensor->_T_cam_body = _tf_buffer.lookupTransform(
                         _frame_body,        // target
-                        sensor->_frame,     // source
+                        sensor->_cfg.frame,     // source
                         tf2::TimePointZero  // latest
                     );
                     sensor->_tf_init = true;
                     RCLCPP_INFO(this->get_logger(),
                         "got sensor-body transform for %s",
-                        sensor->_frame.c_str()
+                        sensor->_cfg.frame.c_str()
                     );
                 }
                 catch (const tf2::TransformException & ex)
@@ -75,7 +155,7 @@ CbfPcSelectorNode::CbfPcSelectorNode(const rclcpp::NodeOptions& options)
                     RCLCPP_WARN(this->get_logger(),
                         "could not get transform %s - %s: %s",
                         _frame_body.c_str(),
-                        sensor->_frame.c_str(),
+                        sensor->_cfg.frame.c_str(),
                         ex.what());
                 }
             }
@@ -84,12 +164,8 @@ CbfPcSelectorNode::CbfPcSelectorNode(const rclcpp::NodeOptions& options)
     }
 
     // get mavros transform is specified
-    _publish_mavros = static_cast<bool>(config["frame_mavros"]);
-    if (_publish_mavros)
-        _frame_mavros = config["frame_mavros"].as<std::string>();
-
-    bool got_transform_mavros = !_publish_mavros;
-    while (!got_transform_mavros)
+    bool got_transform_mavros = false;
+    while (!_frame_mavros.empty() && !got_transform_mavros)
     {
         try
         {
@@ -111,12 +187,12 @@ CbfPcSelectorNode::CbfPcSelectorNode(const rclcpp::NodeOptions& options)
 
     // publishers
     _pc_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(
-        "/cbf_pc_selector/output_pc",
+        "~/output_pc",
         rclcpp::QoS(10).reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE)
     );
-    if (_publish_mavros)
+    if (!_frame_mavros.empty())
         _mavros_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>(
-            "/cbf_pc_selector/output_mavros",
+            "~/output_mavros",
             rclcpp::QoS(10).reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE)
         );
 
@@ -141,17 +217,17 @@ CbfPcSelectorNode::CbfPcSelectorNode(const rclcpp::NodeOptions& options)
     // subscribe to all image topics
     for (const auto& sensor : _sensors)
     {
-        if (sensor->_isPointcloud)
+        if (sensor->_cfg.is_pointcloud)
         {
             sensor->_pcSub = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-                sensor->_topic,
+                sensor->_cfg.topic,
                 rclcpp::SensorDataQoS(),
                 std::bind(&Sensor::pcCb, sensor.get(), std::placeholders::_1)
             );
         } else
         {
             sensor->_imgSub = this->create_subscription<sensor_msgs::msg::Image>(
-                sensor->_topic,
+                sensor->_cfg.topic,
                 rclcpp::SensorDataQoS(),
                 std::bind(&Sensor::imgCb, sensor.get(), std::placeholders::_1)
             );
@@ -159,7 +235,7 @@ CbfPcSelectorNode::CbfPcSelectorNode(const rclcpp::NodeOptions& options)
 
       RCLCPP_INFO(this->get_logger(),
           "callback registered to topic %s",
-          sensor->_topic.c_str()
+          sensor->_cfg.topic.c_str()
       );
     }
 }
@@ -195,7 +271,7 @@ void CbfPcSelectorNode::onSensorCb()
     pc_mod.resize(_out_msg.width);
     _pc_pub->publish(_out_msg);
 
-    if (_publish_mavros)
+    if (!_frame_mavros.empty())
     {
         sensor_msgs::msg::PointCloud2 pc_msg_mavros;
         tf2::doTransform(_out_msg, pc_msg_mavros, _T_body_mavros);
@@ -210,7 +286,9 @@ void CbfPcSelectorNode::onSensorCb()
 int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
-    auto node = std::make_shared<CbfPcSelectorNode>();
+    rclcpp::NodeOptions opts;
+    opts.automatically_declare_parameters_from_overrides(true);
+    auto node = std::make_shared<CbfPcSelectorNode>(opts);
     rclcpp::spin(node);
     rclcpp::shutdown();
     return 0;
