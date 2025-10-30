@@ -1,16 +1,25 @@
 <?xml version="1.0"?>
-<package format="2">
-  <name>cbf_pc_selector</name>
-  <version>2.0.0</version>
-  <description>The cbf_pc_selector package</description>
+<package format="3">
+    <name>cbf_pc_selector</name>
+    <version>2.0.0</version>
+    <description>Composite CBF point cloud selector.</description>
+    <maintainer email="martin.jacquet@ntnu.no">mjacquet</maintainer>
+    <license>BSD-3-Clause</license>
 
-  <maintainer email="martin.jacquet@ntnu.no">mjacquet</maintainer>
-  <license>TODO</license>
+    <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <buildtool_depend>catkin</buildtool_depend>
-
-    <depend>roscpp</depend>
+    <depend>rclcpp</depend>
     <depend>sensor_msgs</depend>
+    <depend>std_msgs</depend>
+    <depend>tf2</depend>
     <depend>tf2_ros</depend>
-    <depend>tf2_sensor_msgs</depend>
-  </package>
+    <depend>tf2_geometry_msgs</depend>
+    <depend>yaml-cpp</depend>
+
+    <exec_depend>launch</exec_depend>
+    <exec_depend>launch_ros</exec_depend>
+
+    <export>
+        <build_type>ament_cmake</build_type>
+    </export>
+</package>

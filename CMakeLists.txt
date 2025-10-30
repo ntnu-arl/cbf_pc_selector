@@ -1,32 +1,51 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.8)
 project(cbf_pc_selector)
 
-set(CMAKE_CXX_FLAGS "-O3")
-add_compile_options(-std=c++17)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_sensor_msgs REQUIRED)
 find_package(yaml-cpp REQUIRED)
+find_package(Eigen3 REQUIRED)
 
-find_package(catkin REQUIRED COMPONENTS
-    roscpp
-    sensor_msgs
-    tf2_ros
-    tf2_sensor_msgs
+add_executable(pc_selector_node
+    src/CbfPcSelectorNode.cpp
+    src/Sensor.cpp
 )
 
-catkin_package(
-    LIBRARIES cbf_pc_selector
-    CATKIN_DEPENDS roscpp sensor_msgs tf2_ros tf2_sensor_msgs
+target_include_directories(pc_selector_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
 )
 
-include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${catkin_INCLUDE_DIRS}
-    ${YAML_CPP_INCLUDE_DIR}
-)
-
-add_executable(cbf_pc_selector_node src/CbfPcSelectorNode.cpp src/Sensor.cpp)
-target_link_libraries(
-    cbf_pc_selector_node
-    ${catkin_LIBRARIES}
+target_link_libraries(pc_selector_node
     yaml-cpp
 )
+
+ament_target_dependencies(pc_selector_node
+  rclcpp
+  sensor_msgs
+  tf2
+  tf2_ros
+  tf2_sensor_msgs
+)
+
+install(
+    TARGETS pc_selector_node
+    DESTINATION lib/${PROJECT_NAME}
+)
+install(
+    DIRECTORY include
+    DESTINATION include
+)
+install(
+    DIRECTORY launch config
+    DESTINATION share/${PROJECT_NAME}
+)
+
+ament_package()

@@ -11,9 +11,8 @@ The sensors characteristics are described in a config file, detailled in [hereaf
 
 ### Requirements
 
-* ROS Noetic
+* ROS 2 (Tested on Humble)
 * Eigen3
-* [yaml-cpp](https://github.com/jbeder/yaml-cpp)
 
 ### Installation
 

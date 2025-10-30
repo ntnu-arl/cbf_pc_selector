@@ -1,12 +1,15 @@
 #ifndef CBFPCSEL_SENSOR
 #define CBFPCSEL_SENSOR
 
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/CameraInfo.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <sensor_msgs/point_cloud2_iterator.h>
-#include <tf2_ros/transform_listener.h>
-#include <tf2_sensor_msgs/tf2_sensor_msgs.h>
+#include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/image.hpp>
+#include <sensor_msgs/msg/camera_info.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <sensor_msgs/msg/point_field.hpp>
+#include <sensor_msgs/point_cloud2_iterator.hpp>
+
+#include <tf2_sensor_msgs/tf2_sensor_msgs.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
 
 #include <string>
 #include <vector>
@@ -19,13 +22,13 @@ class Sensor
 public:
     Sensor(const YAML::Node& node, std::function<void()> cb);
 
-    void camInfoCb(const sensor_msgs::CameraInfoConstPtr& msg);
-    void imgCb(const sensor_msgs::ImageConstPtr& msg);
-    void pcCb(const sensor_msgs::PointCloud2ConstPtr& msg);
+    void camInfoCb(const sensor_msgs::msg::CameraInfo::ConstSharedPtr& msg);
+    void imgCb(const sensor_msgs::msg::Image::ConstSharedPtr& msg);
+    void pcCb(const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg);
 
     bool hasPoints() { return (bool)_points.width; };
     size_t nbBins() { return _bin_h * _bin_w; };
-    sensor_msgs::PointCloud2 pcInBody();
+    sensor_msgs::msg::PointCloud2 pcInBody();
 
     // TODO make the field below accessible via getters?
     std::string _topic;  // sensor data topic
@@ -39,15 +42,16 @@ public:
     bool _proj_init = false;
     bool _tf_init = false;
 
-    geometry_msgs::TransformStamped _T_cam_body;  // ROS transform from camera frame to body frame
-    ros::Subscriber _camInfoSub;
-    ros::Subscriber _sensorSub;
+    geometry_msgs::msg::TransformStamped _T_cam_body;  // ROS transform from camera frame to body frame
+    rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr _camInfoSub;
+    rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr _pcSub;
+    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr _imgSub;
 private:
     void allocatePointsBins();
     void binsToPoints();
 
     std::vector<std::vector<std::vector<float>>> _bins;
-    sensor_msgs::PointCloud2 _points;
+    sensor_msgs::msg::PointCloud2 _points;
 
     std::function<void()> _notify_node_cb;  // callback to notify node after processing message
 

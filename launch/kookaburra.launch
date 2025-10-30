@@ -1,6 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-    <node pkg="cbf_pc_selector" type="cbf_pc_selector_node" name="cbf_pc_selector" output="screen">
-        <param name="config_file" value="$(find cbf_pc_selector)/config/kookaburra.yaml"/>
-    </node>
-</launch>

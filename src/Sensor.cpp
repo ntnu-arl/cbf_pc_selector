@@ -12,6 +12,9 @@ Sensor::Sensor(const YAML::Node& node,
     _topic = node["topic"].as<std::string>();
     _frame = node["frame"].as<std::string>();
     _points.header.frame_id = _frame;
+    _points.height = 1;
+    _points.is_dense = false;
+
 
     _isPointcloud = node["is_pointcloud"] ? node["is_pointcloud"].as<bool>() : false;
     _isPolar = node["is_polar"] ? node["is_polar"].as<bool>() : false;
@@ -77,10 +80,10 @@ Sensor::Sensor(const YAML::Node& node,
                 throw std::runtime_error("yaml missing azimuth_range");
             if (!node["elevation_range"] || !node["elevation_range"].IsSequence() || !(node["elevation_range"].size() == 2))
                 throw std::runtime_error("yaml missing elevation_range");
-            _az_min = node["azimuth_range"][0].as<float>() * M_PI / 180;
-            _az_max = node["azimuth_range"][1].as<float>() * M_PI / 180;
-            _el_min = node["elevation_range"][0].as<float>() * M_PI / 180;
-            _el_max = node["elevation_range"][1].as<float>() * M_PI / 180;
+            _az_min = node["azimuth_range"][0].as<float>() * M_PI / 180.f;
+            _az_max = node["azimuth_range"][1].as<float>() * M_PI / 180.f;
+            _el_min = node["elevation_range"][0].as<float>() * M_PI / 180.f;
+            _el_max = node["elevation_range"][1].as<float>() * M_PI / 180.f;
         }
         allocatePointsBins();
         _proj_init = true;
@@ -98,32 +101,33 @@ void Sensor::allocatePointsBins()
 
     // allocate pc2
     sensor_msgs::PointCloud2Modifier pc_mod(_points);
-    pc_mod.setPointCloud2Fields(4,
-        "x", 1, sensor_msgs::PointField::FLOAT32,
-        "y", 1, sensor_msgs::PointField::FLOAT32,
-        "z", 1, sensor_msgs::PointField::FLOAT32,
-        "range", 1, sensor_msgs::PointField::FLOAT32
+    pc_mod.setPointCloud2Fields(
+        4,
+        "x", 1, sensor_msgs::msg::PointField::FLOAT32,
+        "y", 1, sensor_msgs::msg::PointField::FLOAT32,
+        "z", 1, sensor_msgs::msg::PointField::FLOAT32,
+        "range", 1, sensor_msgs::msg::PointField::FLOAT32
     );
     pc_mod.reserve(_bin_h * _bin_w);
     pc_mod.resize(0);
 }
 
 
-void Sensor::camInfoCb(const sensor_msgs::CameraInfoConstPtr& msg)
+void Sensor::camInfoCb(const sensor_msgs::msg::CameraInfo::ConstSharedPtr& msg)
 {
     if (!_proj_init)
     {
-        float h = (float)msg->height;
-        float w = (float)msg->width;
+        float h = static_cast<float>(msg->height);
+        float w = static_cast<float>(msg->width);
 
         _pix_per_bin = std::ceil(h / _bin_h) * std::ceil(w / _bin_w);
 
-        float scale_x = (float)_bin_h / h;
-        float scale_y = (float)_bin_w / w;
-        _fx = msg->K[0] * scale_x;
-        _fy = msg->K[4] * scale_y;
-        _cx = msg->K[2] * scale_x;
-        _cy = msg->K[5] * scale_y;
+        float scale_x = static_cast<float>(_bin_h / h);
+        float scale_y = static_cast<float>(_bin_w / w);
+        _fx = static_cast<float>(msg->k[0]) * scale_x;
+        _fy = static_cast<float>(msg->k[4]) * scale_y;
+        _cx = static_cast<float>(msg->k[2]) * scale_x;
+        _cy = static_cast<float>(msg->k[5]) * scale_y;
 
         allocatePointsBins();
         _proj_init = true;
@@ -131,13 +135,14 @@ void Sensor::camInfoCb(const sensor_msgs::CameraInfoConstPtr& msg)
 }
 
 
-void Sensor::imgCb(const sensor_msgs::ImageConstPtr& msg)
+void Sensor::imgCb(const sensor_msgs::msg::Image::ConstSharedPtr& msg)
 {
     auto start = std::chrono::high_resolution_clock::now();
     // skip if cameraInfo not received
     if (!_proj_init)
     {
-        ROS_WARN("[cbf_cp_selector] waiting for cameraInfo on %s", _camInfo_topic.c_str());
+        auto logger = rclcpp::get_logger("cbf_cp_selector").get_child("sensor");
+        RCLCPP_WARN(logger, "waiting for cameraInfo on %s", _camInfo_topic.c_str());
         return;
     }
 
@@ -181,8 +186,8 @@ void Sensor::imgCb(const sensor_msgs::ImageConstPtr& msg)
                     continue;
 
                 // store in corresponding bin
-                v_bin = (float)v / width * _bin_w;
-                u_bin = (float)u / height * _bin_h;
+                v_bin =static_cast<float>(v) / width * _bin_w;
+                u_bin =static_cast<float>(u) / height * _bin_h;
                 v_bin = std::min(std::max(0, v_bin), _bin_w - 1);
                 u_bin = std::min(std::max(0, u_bin), _bin_h - 1);
                 _bins[u_bin][v_bin].push_back(distance);
@@ -190,7 +195,8 @@ void Sensor::imgCb(const sensor_msgs::ImageConstPtr& msg)
         }
         else
         {
-            ROS_WARN("[cbf_pc_selector] image encoding not supported");
+            auto logger = rclcpp::get_logger("cbf_cp_selector").get_child("sensor");
+            RCLCPP_WARN(logger, "image encoding not supported");
             return;
         }
     }
@@ -204,16 +210,17 @@ void Sensor::imgCb(const sensor_msgs::ImageConstPtr& msg)
 }
 
 
-void Sensor::pcCb(const sensor_msgs::PointCloud2ConstPtr& msg)
+void Sensor::pcCb(const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg)
 {
     int u_bin, v_bin;
+
     for (sensor_msgs::PointCloud2ConstIterator<float> x_it(*msg, "x"), y_it(*msg, "y"), z_it(*msg, "z");
          x_it != x_it.end();
          ++x_it, ++y_it, ++z_it)
     {
-        float x = *x_it;
-        float y = *y_it;
-        float z = *z_it;
+        const float x = *x_it;
+        const float y = *y_it;
+        const float z = *z_it;
 
         float range = std::sqrt(x * x + y * y + z * z);
 
@@ -224,8 +231,8 @@ void Sensor::pcCb(const sensor_msgs::PointCloud2ConstPtr& msg)
         float az = atan2(y, x);
         float el = atan2(z, std::sqrt(x * x + y * y));
 
-        v_bin = static_cast<int>((az - _az_min) / (_az_max - _az_min) * _bin_w);
-        u_bin = static_cast<int>((el - _el_min) / (_el_max - _el_min) * _bin_h);
+        v_bin = static_cast<int>(std::floor((az - _az_min) / (_az_max - _az_min) * _bin_w));
+        u_bin = static_cast<int>(std::floor((el - _el_min) / (_el_max - _el_min) * _bin_h));
         v_bin = std::min(std::max(0, v_bin), _bin_w - 1);
         u_bin = std::min(std::max(0, u_bin), _bin_h - 1);
         _bins[u_bin][v_bin].push_back(range);
@@ -242,11 +249,6 @@ void Sensor::pcCb(const sensor_msgs::PointCloud2ConstPtr& msg)
 
 void Sensor::binsToPoints()
 {
-    sensor_msgs::PointCloud2Iterator<float> iter_x(_points, "x");
-    sensor_msgs::PointCloud2Iterator<float> iter_y(_points, "y");
-    sensor_msgs::PointCloud2Iterator<float> iter_z(_points, "z");
-    sensor_msgs::PointCloud2Iterator<float> iter_r(_points, "range");
-
     sensor_msgs::PointCloud2Modifier pc_mod(_points);
     size_t nb_points = 0;
     for (size_t u = 0; u < _bin_h; ++u)
@@ -254,6 +256,11 @@ void Sensor::binsToPoints()
             if (_bins[u][v].size() > _min_per_bin)
                 ++nb_points;
     pc_mod.resize(nb_points);
+
+    sensor_msgs::PointCloud2Iterator<float> iter_x(_points, "x");
+    sensor_msgs::PointCloud2Iterator<float> iter_y(_points, "y");
+    sensor_msgs::PointCloud2Iterator<float> iter_z(_points, "z");
+    sensor_msgs::PointCloud2Iterator<float> iter_r(_points, "range");
 
     for (size_t u = 0; u < _bin_h; ++u)
     {
@@ -269,8 +276,8 @@ void Sensor::binsToPoints()
                 if (_isPolar)
                 {
                     float range = _bins[u][v][idx];
-                    float azimuth = _az_min + ((float)v + 0.5f) * (_az_max - _az_min) / (_bin_w - 1);
-                    float elevation = _el_min + ((float)u + 0.5f) * (_el_max - _el_min) / (_bin_h - 1);
+                    float azimuth = _az_min + (static_cast<float>(v) + 0.5f) * (_az_max - _az_min) / (_bin_w);
+                    float elevation = _el_min + (static_cast<float>(u) + 0.5f) * (_el_max - _el_min) / (_bin_h);
 
                     *iter_x = range * std::cos(elevation) * std::cos(azimuth);
                     *iter_y = range * std::cos(elevation) * std::sin(azimuth);
@@ -280,8 +287,8 @@ void Sensor::binsToPoints()
                 else
                 {
                     *iter_z = _bins[u][v][idx];
-                    *iter_x = (v + 0.5 - _cx) / _fx * _bins[u][v][idx];
-                    *iter_y = (u + 0.5 - _cy) / _fy * _bins[u][v][idx];
+                    *iter_x = (static_cast<float>(v) + 0.5f - _cx) / _fx * _bins[u][v][idx];
+                    *iter_y = (static_cast<float>(u) + 0.5f - _cy) / _fy * _bins[u][v][idx];
 
                     float x = *iter_x;
                     float y = *iter_y;
@@ -298,9 +305,9 @@ void Sensor::binsToPoints()
 }
 
 
-sensor_msgs::PointCloud2 Sensor::pcInBody()
+sensor_msgs::msg::PointCloud2 Sensor::pcInBody()
 {
-    sensor_msgs::PointCloud2 pc_body;
+    sensor_msgs::msg::PointCloud2 pc_body;
     tf2::doTransform(_points, pc_body, _T_cam_body);
     return pc_body;
 }

@@ -1,8 +1,8 @@
-frame_body: rmf_owl/base_link
+frame_body: rmf/base_link
 sensors:
     -  # gz depth cam
-        topic: /rmf_owl/cam/depth
-        frame: rmf_owl/base_link/depth_cam/optical
+        topic: /rmf/cam/depth
+        frame: rmf/base_link/depth_cam/optical
         bins_w: 16
         bins_h: 9
         percentile: 10  # [%]
@@ -18,18 +18,17 @@ sensors:
         image_w: 480  # -- used only for preallocating bin size
         image_h: 270  # -- used only for preallocating bin size
     -  # gz lidar
-        topic: /rmf_owl/lidar/points
-        frame: rmf_owl/base_link/lidar
-        bins_w: 32
-        bins_h: 8
+        topic: /rmf/lidar/points
+        frame: rmf/base_link/lidar
+        bins_w: 64
+        bins_h: 16
         percentile: 10  # [%]
         min_per_bin: 0
-        mm_resolution: 100  # mm resolution in 1 pixel unit
         min_range: 0.6  # [m]
         max_range: 10  # [m]
         is_pointcloud: true
         is_polar: true
-        # input info (since no cam_info is provided)
+        # input info
         azimuth_range: [-180, 180]  # range of azimuth covered by sensor [deg]
         elevation_range: [-45, 45]  # range of azimuth covered by sensor [deg]
         nb_pts: 65536  # -- used only for preallocating bin size
