@@ -88,28 +88,6 @@ CbfPcSelectorNode::CbfPcSelectorNode(const rclcpp::NodeOptions& options)
             kv.second,
             std::bind(&CbfPcSelectorNode::onSensorCb, this)
         ));
-        // RCLCPP_INFO(get_logger(), "%s", _sensors.back()->_cfg.topic.c_str());
-        // RCLCPP_INFO(get_logger(), "%s", _sensors.back()->_cfg.frame.c_str());
-        // RCLCPP_INFO(get_logger(), "%i", _sensors.back()->_cfg.bins_w);
-        // RCLCPP_INFO(get_logger(), "%i", _sensors.back()->_cfg.bins_h);
-        // RCLCPP_INFO(get_logger(), "%f", _sensors.back()->_cfg.min_range);
-        // RCLCPP_INFO(get_logger(), "%f", _sensors.back()->_cfg.max_range);
-        // RCLCPP_INFO(get_logger(), "%i", _sensors.back()->_cfg.is_pointcloud);
-        // RCLCPP_INFO(get_logger(), "%i", _sensors.back()->_cfg.is_polar);
-        // RCLCPP_INFO(get_logger(), "%i", _sensors.back()->_cfg.mm_resolution);
-        // RCLCPP_INFO(get_logger(), "%i", _sensors.back()->_cfg.min_per_bin);
-        // RCLCPP_INFO(get_logger(), "%f", _sensors.back()->_cfg.percentile);
-        // RCLCPP_INFO(get_logger(), "%s", _sensors.back()->_cfg.cam_info_topic.c_str());
-        // RCLCPP_INFO(get_logger(), "%i", _sensors.back()->_cfg.image_w);
-        // RCLCPP_INFO(get_logger(), "%i", _sensors.back()->_cfg.image_h);
-        // RCLCPP_INFO(get_logger(), "%f", _sensors.back()->_cfg.hfov);
-        // RCLCPP_INFO(get_logger(), "%f", _sensors.back()->_cfg.vfov);
-        // RCLCPP_INFO(get_logger(), "%i", _sensors.back()->_cfg.nb_pts);
-        // RCLCPP_INFO(get_logger(), "%f", _sensors.back()->_cfg.azimuth_range[0]);
-        // RCLCPP_INFO(get_logger(), "%f", _sensors.back()->_cfg.azimuth_range[1]);
-        // RCLCPP_INFO(get_logger(), "%f", _sensors.back()->_cfg.elevation_range[0]);
-        // RCLCPP_INFO(get_logger(), "%f", _sensors.back()->_cfg.elevation_range[1]);
-        
     }
     RCLCPP_INFO(get_logger(), "logged sensor config successfully");
 

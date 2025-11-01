@@ -18,16 +18,16 @@ add_executable(pc_selector_node
 )
 
 target_include_directories(pc_selector_node PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
 )
 
 ament_target_dependencies(pc_selector_node
-  rclcpp
-  sensor_msgs
-  tf2
-  tf2_ros
-  tf2_sensor_msgs
+    rclcpp
+    sensor_msgs
+    tf2
+    tf2_ros
+    tf2_sensor_msgs
 )
 
 install(
