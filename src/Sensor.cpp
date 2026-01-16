@@ -96,6 +96,12 @@ void Sensor::allocatePointsBins()
         for (size_t v = 0; v < _bin_w; v++)
             _bins[u][v].reserve(_pix_per_bin);
 
+    // allocate bins full
+    _bins_full = std::vector<std::vector<std::vector<Eigen::Vector3f>>>(_bin_h, std::vector<std::vector<Eigen::Vector3f>>(_bin_w));
+    for (size_t u = 0; u < _bin_h; u++)
+        for (size_t v = 0; v < _bin_w; v++)
+            _bins_full[u][v].reserve(_pix_per_bin);
+
     // allocate pc2
     sensor_msgs::PointCloud2Modifier pc_mod(_points);
     pc_mod.setPointCloud2Fields(4,
@@ -229,16 +235,78 @@ void Sensor::pcCb(const sensor_msgs::PointCloud2ConstPtr& msg)
         v_bin = std::min(std::max(0, v_bin), _bin_w - 1);
         u_bin = std::min(std::max(0, u_bin), _bin_h - 1);
         _bins[u_bin][v_bin].push_back(range);
+        _bins_full[u_bin][v_bin].push_back(Eigen::Vector3f(x, y, z));
     }
 
     // create points for each pixels
-    binsToPoints();
+    // binsToPoints();
+    binsToPointsFull();
     _points.header.stamp = msg->header.stamp;
 
     // notify main node to publish
     _notify_node_cb();
 }
 
+void Sensor::binsToPointsFull()
+{
+    sensor_msgs::PointCloud2Iterator<float> iter_x(_points, "x");
+    sensor_msgs::PointCloud2Iterator<float> iter_y(_points, "y");
+    sensor_msgs::PointCloud2Iterator<float> iter_z(_points, "z");
+    sensor_msgs::PointCloud2Iterator<float> iter_r(_points, "range");
+
+    sensor_msgs::PointCloud2Modifier pc_mod(_points);
+    size_t nb_points = 0;
+    for (size_t u = 0; u < _bin_h; ++u)
+        for (size_t v = 0; v < _bin_w; ++v)
+            if (_bins[u][v].size() > _min_per_bin)
+                ++nb_points;
+    pc_mod.resize(nb_points);
+
+    for (size_t u = 0; u < _bin_h; ++u)
+    {
+        for (size_t v = 0; v < _bin_w; ++v)
+        {
+            if (_bins[u][v].size() > _min_per_bin)
+            {
+                // parial sort
+                size_t idx = static_cast<size_t>(floor(_bins[u][v].size() * _percentile));
+                std::nth_element(_bins[u][v].begin(), _bins[u][v].begin() + idx, _bins[u][v].end());
+
+                // point coordinates
+                if (_isPolar)
+                {
+                    float range = _bins[u][v][idx];
+                    float azimuth = _az_min + ((float)v + 0.5f) * (_az_max - _az_min) / (_bin_w - 1);
+                    float elevation = _el_min + ((float)u + 0.5f) * (_el_max - _el_min) / (_bin_h - 1);
+
+                    // *iter_x = range * std::cos(elevation) * std::cos(azimuth);
+                    // *iter_y = range * std::cos(elevation) * std::sin(azimuth);
+                    // *iter_z = range * std::sin(elevation);
+                    *iter_x = _bins_full[u][v][idx].x();
+                    *iter_y = _bins_full[u][v][idx].y();
+                    *iter_z = _bins_full[u][v][idx].z();
+                    *iter_r = range;
+        		}
+                else
+                {
+                    *iter_z = _bins[u][v][idx];
+                    *iter_x = (v + 0.5 - _cx) / _fx * _bins[u][v][idx];
+                    *iter_y = (u + 0.5 - _cy) / _fy * _bins[u][v][idx];
+
+                    float x = *iter_x;
+                    float y = *iter_y;
+                    float z = *iter_z;
+                    *iter_r = std::sqrt(x * x + y * y + z * z);
+                }
+
+                ++iter_x; ++iter_y; ++iter_z, ++iter_r;
+                ++nb_points;
+            }
+            _bins[u][v].clear();
+            _bins_full[u][v].clear();
+        }
+    }
+}
 
 void Sensor::binsToPoints()
 {

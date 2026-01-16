@@ -45,8 +45,10 @@ public:
 private:
     void allocatePointsBins();
     void binsToPoints();
+    void binsToPointsFull();
 
     std::vector<std::vector<std::vector<float>>> _bins;
+    std::vector<std::vector<std::vector<Eigen::Vector3f>>> _bins_full;
     sensor_msgs::PointCloud2 _points;
 
     std::function<void()> _notify_node_cb;  // callback to notify node after processing message

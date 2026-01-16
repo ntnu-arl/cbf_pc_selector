@@ -40,7 +40,7 @@ private:
     std::string _frame_mavros;
     bool _publish_mavros = false;
     geometry_msgs::TransformStamped _T_body_mavros;
-    bool _enabled = false;
+    bool _enabled = true;
 
     ros::Publisher _pc_pub;
     ros::Publisher _mavros_pub;
