@@ -220,6 +220,8 @@ void Sensor::pcCb(const sensor_msgs::PointCloud2ConstPtr& msg)
         float x = *x_it;
         float y = *y_it;
         float z = *z_it;
+        
+        if(std::isnan(x) || std::isnan(y) || std::isnan(z)) continue;
 
         float range = std::sqrt(x * x + y * y + z * z);
 
@@ -268,9 +270,26 @@ void Sensor::binsToPointsFull()
         {
             if (_bins[u][v].size() > _min_per_bin)
             {
+                std::vector<float> bins_og(_bins[u][v]);
                 // parial sort
                 size_t idx = static_cast<size_t>(floor(_bins[u][v].size() * _percentile));
                 std::nth_element(_bins[u][v].begin(), _bins[u][v].begin() + idx, _bins[u][v].end());
+
+                size_t og_id = -1;
+                for (int i=0; i<bins_og.size(); ++i)
+                {
+                    if ((bins_og[i]-_bins[u][v][idx] )*(bins_og[i]-_bins[u][v][idx]) < 1e-5){
+                        og_id = i;
+                    }
+
+                }
+                if(og_id < 0) 
+                {
+                    ROS_ERROR("OG index not found. Should not happen");
+                    _bins[u][v].clear();
+                    _bins_full[u][v].clear();
+                    continue;
+                }
 
                 // point coordinates
                 if (_isPolar)
@@ -282,9 +301,9 @@ void Sensor::binsToPointsFull()
                     // *iter_x = range * std::cos(elevation) * std::cos(azimuth);
                     // *iter_y = range * std::cos(elevation) * std::sin(azimuth);
                     // *iter_z = range * std::sin(elevation);
-                    *iter_x = _bins_full[u][v][idx].x();
-                    *iter_y = _bins_full[u][v][idx].y();
-                    *iter_z = _bins_full[u][v][idx].z();
+                    *iter_x = _bins_full[u][v][og_id].x();
+                    *iter_y = _bins_full[u][v][og_id].y();
+                    *iter_z = _bins_full[u][v][og_id].z();
                     *iter_r = range;
         		}
                 else
