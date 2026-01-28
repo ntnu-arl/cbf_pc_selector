@@ -3,9 +3,9 @@ sensors:
     -  # airy
         topic: /rslidar_points
         frame: mimosa_lidar
-        bins_w: 32
-        bins_h: 32
-        percentile: 20  # [%]
+        bins_w: 16
+        bins_h: 16
+        percentile: 50  # [%]
         min_per_bin: 20
         min_range: 0.4  # [m]
         max_range: 10  # [m]
